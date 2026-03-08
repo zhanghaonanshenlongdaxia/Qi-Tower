@@ -1,68 +1,193 @@
-# Game2
+# 问道塔 (Qi-Tower) 🐕🐱
 
-一个基于 `Vite + Phaser 3` 的数据驱动卡牌项目基础结构。
+一款受《杀戮尖塔》启发的中国风卡牌 Roguelike 游戏
 
-## 当前结构
+**在线游玩**: [TODO: 部署链接]  
+**GitHub**: https://github.com/zhanghaonanshenlongdaxia/Qi-Tower
 
-```text
-Game2/
-├─ index.html
-├─ package.json
-├─ README.md
-└─ src/
-   ├─ main.js
-   ├─ style.css
-   ├─ config/
-   │  └─ gameConfig.js
-   ├─ data/
-   │  ├─ cards.js
-   │  ├─ enemies.js
-   │  ├─ starterDecks.js
-   │  └─ relics.js
-   ├─ scenes/
-   │  ├─ BootScene.js
-   │  ├─ MenuScene.js
-   │  └─ BattleScene.js
-   └─ systems/
-      ├─ DataRegistry.js
-      └─ BattleState.js
-```
+---
 
-## 数据驱动原则
+## 🎮 游戏特色
 
-- `src/data` 只放静态数据
-- `DataRegistry` 负责统一读取和构建数据对象
-- `BattleState` 只消费数据，不直接写死卡牌内容
-- 场景层只负责表现，不直接耦合数据源定义
+- **修仙主题**：以中国传统文化为背景的卡牌构建游戏
+- **丰富卡牌**：50+ 张独特卡牌，包含攻击、防御、技能等多种类型
+- **状态系统**：虚弱、易伤、中毒、燃烧、力量、敏捷等 15+ 种状态效果
+- **多样敌人**：3 个区域，15+ 种敌人，3 个强力 Boss
+- **遗物收集**：40+ 件遗物，提供丰富的被动增益
+- **随机事件**：15+ 种随机事件，每次冒险都不同
+- **多职业**：修仙者、武者、法师（开发中）
 
-## 已完成内容
+---
 
-- 卡牌库
-- 敌人库
-- 初始卡组
-- 遗物库
-- 数据注册层
-- 最小战斗循环
-- 菜单场景与战斗场景
+## 🚀 快速开始
 
-## 运行
-
-安装依赖：
+### 安装依赖
 
 ```bash
 npm install
 ```
 
-开发模式：
+### 开发模式
 
 ```bash
 npm run dev
 ```
 
-## 下一步建议
+然后在浏览器打开 `http://localhost:5173`
 
-- 增加 `src/data/statusEffects.js`
-- 增加 `src/data/encounters.js`
-- 增加奖励选牌与地图节点
-- 增加多职业初始卡组
-- 增加存档与局外成长
+### 构建生产版本
+
+```bash
+npm run build
+```
+
+### 预览生产版本
+
+```bash
+npm run preview
+```
+
+---
+
+## 📖 游戏系统
+
+### 战斗系统
+- 每回合抽取 5 张牌
+- 使用能量打出卡牌
+- 合理运用格挡和状态效果
+- 击败敌人获得奖励
+
+### 状态效果
+
+**负面状态**：
+- 💢 **虚弱** - 造成的伤害减少 25%
+- ⚠️ **易伤** - 受到的伤害增加 50%
+- ☠️ **中毒** - 回合结束时失去 3 点生命/层
+- 🔥 **燃烧** - 回合结束时失去 2 点生命/层
+- 😵 **眩晕** - 跳过下一回合
+
+**正面状态**：
+- 💪 **力量** - 造成的伤害增加 3 点/层
+- 🏃 **敏捷** - 获得的格挡增加 2 点/层
+- 🛡️ **护体** - 抵消 5 点状态伤害/层
+- 💚 **再生** - 回合结束时恢复 2 点生命/层
+- 🎯 **集中** - 增加力量和敏捷效果
+
+### 地图系统
+- 每层 5-7 个节点
+- 节点类型：战斗、精英、事件、休息、商店、Boss
+- 选择你的前进路线
+
+### 遗物系统
+- **普通遗物**：基础增益
+- **稀有遗物**：强力效果
+- **Boss 遗物**：改变玩法的核心遗物
+- **诅咒遗物**：高风险高回报
+
+---
+
+## 📁 项目结构
+
+```
+Qi-Tower/
+├── index.html              # 入口 HTML
+├── package.json            # 项目配置
+├── vite.config.js          # Vite 配置
+├── README.md               # 说明文档
+├── DEV_PLAN.md             # 开发计划
+├── assets/                 # 资源文件
+│   ├── images/            # 图片资源
+│   ├── audio/             # 音频资源
+│   └── fonts/             # 字体
+└── src/
+    ├── main.js            # 游戏入口
+    ├── style.css          # 样式
+    ├── config/            # 配置文件
+    ├── data/              # 游戏数据
+    │   ├── cards.js       # 卡牌数据
+    │   ├── enemies.js     # 敌人数据
+    │   ├── relics.js      # 遗物数据
+    │   ├── statusEffects.js  # 状态效果
+    │   ├── encounters.js     # 遭遇配置
+    │   └── events.js         # 事件配置
+    ├── scenes/            # Phaser 场景
+    │   ├── BootScene.js   # 加载场景
+    │   ├── MenuScene.js   # 菜单场景
+    │   ├── MapScene.js    # 地图场景
+    │   ├── BattleScene.js # 战斗场景
+    │   ├── RewardScene.js # 奖励场景
+    │   └── ShopScene.js   # 商店场景
+    ├── systems/           # 游戏系统
+    │   ├── GameState.js   # 游戏状态
+    │   ├── BattleState.js # 战斗状态
+    │   └── SaveSystem.js  # 存档系统
+    └── utils/             # 工具函数
+```
+
+---
+
+## 🛠️ 技术栈
+
+- **Phaser 3** - 游戏引擎
+- **Vite** - 构建工具
+- **JavaScript (ES6+)** - 编程语言
+
+---
+
+## 📋 开发计划
+
+详见 [DEV_PLAN.md](DEV_PLAN.md)
+
+### 已完成 ✅
+- [x] 核心战斗循环
+- [x] 状态效果系统
+- [x] 遭遇配置系统
+- [x] 事件系统
+- [x] 遗物系统
+- [x] 游戏状态管理
+
+### 进行中 🚧
+- [ ] 地图系统完善
+- [ ] 商店系统
+- [ ] 存档系统
+
+### 待开发 📌
+- [ ] 多职业支持
+- [ ] 美术资源
+- [ ] 音频系统
+- [ ] 新手教程
+- [ ] 平衡性调整
+
+---
+
+## 🎨 美术与音乐
+
+当前使用占位资源，后续会替换为：
+- 手绘风格卡牌插画
+- 中国风角色立绘
+- 传统乐器 BGM
+- 精美 UI 设计
+
+---
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+---
+
+## 📄 许可证
+
+MIT License
+
+---
+
+## 🙏 致谢
+
+- 灵感来自《杀戮尖塔》(Slay the Spire)
+- 使用 Phaser 3 游戏引擎
+- 由 Vite 提供构建支持
+
+---
+
+**Made with ❤️ by 臭豆骚咪 🐕🐱**
