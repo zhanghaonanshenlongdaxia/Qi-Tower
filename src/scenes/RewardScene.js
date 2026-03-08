@@ -19,11 +19,13 @@ export class RewardScene extends Phaser.Scene {
       fontSize: '38px',
       color: '#f4ead7',
       fontStyle: 'bold',
+      stroke: '#3a1a08', strokeThickness: 5,
     }).setOrigin(0.5);
 
     this.add.text(width / 2, 190, '选择 1 张卡加入卡组，或跳过。奖励卡会永久加入本轮路线。', {
       fontSize: '19px',
-      color: '#ead9bb',
+      color: '#f4ead7',
+      stroke: '#2a0e04', strokeThickness: 3,
     }).setOrigin(0.5);
 
     this.rewardCards.forEach((card, index) => {
@@ -37,8 +39,8 @@ export class RewardScene extends Phaser.Scene {
         orientation: 1,
         background: this.add.image(0, 0, 'ui_card_frame').setDisplaySize(220, 300),
         text: this.add.text(0, 0, `${card.name}\n\n耗能 ${card.cost}   类型 ${card.type}\n\n${card.description}\n\n${card.rarity.toUpperCase()}`, {
-          fontSize: '18px',
-          color: '#4a2d18',
+          fontSize: '16px',
+          color: '#2a1206',
           align: 'center',
           fontStyle: 'bold',
           wordWrap: { width: 176 },

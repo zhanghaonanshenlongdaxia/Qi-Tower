@@ -7,6 +7,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { BattleScene } from './scenes/BattleScene';
 import { MapScene } from './scenes/MapScene';
 import { RewardScene } from './scenes/RewardScene';
+import { HeroSelectScene } from './scenes/HeroSelectScene';
 
 const config = {
   type: Phaser.AUTO,
@@ -23,7 +24,7 @@ const config = {
       },
     ],
   },
-  scene: [BootScene, MenuScene, MapScene, BattleScene, RewardScene],
+  scene: [BootScene, MenuScene, HeroSelectScene, MapScene, BattleScene, RewardScene],
 };
 
 new Phaser.Game(config);

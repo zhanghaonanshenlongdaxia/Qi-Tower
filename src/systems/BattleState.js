@@ -42,6 +42,7 @@ export class BattleState {
     this.currentNodeId = options.currentNodeId || null;
     this.rewardCount = options.rewardCount || 3;
     this.goldReward = options.goldReward || 0;
+    this.isElite = options.isElite || false;
     const startingMaxHp = options.mapProgress?.maxHp || 50;
     const startingHp = options.mapProgress?.playerHp || startingMaxHp;
     this.player = {
@@ -138,8 +139,13 @@ export class BattleState {
     return card || null;
   }
 
+  isEnraged() {
+    return this.enemy.hp / this.enemy.maxHp <= 0.45;
+  }
+
   getEnemyCardsPerTurn() {
     const hpRatio = this.enemy.hp / this.enemy.maxHp;
+    const enraged = this.isEnraged();
     if (this.enemy.id === 'jade_construct') {
       return hpRatio <= 0.55 ? 4 : 3;
     }
@@ -152,7 +158,7 @@ export class BattleState {
     if (this.enemy.id === 'bandit_guard') {
       return this.turn % 3 === 0 ? 3 : 2;
     }
-    return clamp(this.enemy.cardsPerTurn || 2, 1, 4);
+    return clamp((this.enemy.cardsPerTurn || 2) + (enraged ? 1 : 0), 1, 4);
   }
 
   pickEnemyCardPreference(slotIndex) {
@@ -262,19 +268,26 @@ export class BattleState {
     return true;
   }
 
-  endTurn() {
+  endPlayerTurn() {
     this.discardPile.push(...this.hand.splice(0, this.hand.length));
     const playedEnemyCards = this.enemyAct();
     this.decayStatus(this.player.status);
     this.decayStatus(this.enemy.status);
+    if (this.enemy.hp <= 0 && this.rewardCards.length === 0) {
+      this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount, this.isElite);
+    }
+    return playedEnemyCards;
+  }
+
+  startNextTurn() {
     if (this.enemy.hp > 0 && this.player.hp > 0) {
       this.turn += 1;
       this.startTurn();
     }
-    if (this.enemy.hp <= 0 && this.rewardCards.length === 0) {
-      this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount);
-    }
-    return playedEnemyCards;
+  }
+
+  endTurn() {
+    return this.endPlayerTurn();
   }
 
   enemyAct() {
@@ -316,6 +329,9 @@ export class BattleState {
 
   getSceneOutcome() {
     if (this.getResult() === 'win') {
+      if (this.rewardCards.length === 0) {
+        this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount, this.isElite);
+      }
       const nextProgress = this.mapProgress
         ? {
             ...this.mapProgress,

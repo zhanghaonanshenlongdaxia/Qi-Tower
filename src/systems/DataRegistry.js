@@ -59,9 +59,19 @@ export class DataRegistry {
     return [...baseCards, ...extraCards];
   }
 
-  getRewardCardChoices(count = 3) {
+  getRewardCardChoices(count = 3, guaranteeRare = false) {
     const pool = CARD_LIBRARY.filter(card => card.rarity !== 'starter');
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    if (guaranteeRare) {
+      const rarePool = pool.filter(card => card.rarity === 'rare');
+      const nonRarePool = pool.filter(card => card.rarity !== 'rare');
+      const rareCard = rarePool.length > 0
+        ? { ...rarePool[Math.floor(Math.random() * rarePool.length)] }
+        : null;
+      const fillers = nonRarePool.sort(() => Math.random() - 0.5).slice(0, count - (rareCard ? 1 : 0)).map(c => ({ ...c }));
+      const result = rareCard ? [rareCard, ...fillers] : fillers;
+      return result.slice(0, count);
+    }
     return shuffled.slice(0, count).map(card => ({ ...card }));
   }
 

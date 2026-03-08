@@ -17,7 +17,7 @@ export class BattleScene extends Phaser.Scene {
     this._handCardBounds = [];
     this.createLayout();
     this.input.on('pointerdown', (pointer) => this._onHandPointerDown(pointer));
-    this.render(true);
+    this.render(0);
   }
 
   createLayout() {
@@ -58,11 +58,20 @@ export class BattleScene extends Phaser.Scene {
     this.add.image(44, 52, 'avatar_player').setScale(0.54);
     this.add.image(width - 44, 52, 'avatar_enemy').setScale(0.54);
 
-    this.add.text(width / 2, 58, '对决', {
+    const titleLabel = this.state.isElite ? '精英对决' : '对决';
+    const titleColor = this.state.isElite ? '#ff9040' : '#f4ead7';
+    this.add.text(width / 2, 58, titleLabel, {
       fontSize: '32px',
-      color: '#f4ead7',
+      color: titleColor,
       fontStyle: 'bold',
+      stroke: '#2a0e04', strokeThickness: 4,
     }).setOrigin(0.5);
+    if (this.state.isElite) {
+      this.add.text(width / 2, 88, '★ 精英战斗 · 必得稀有奖励 ★', {
+        fontSize: '13px', color: '#ff9040', fontStyle: 'bold',
+        stroke: '#2a0e04', strokeThickness: 3,
+      }).setOrigin(0.5);
+    }
 
     this.endTurnButton = this.rexUI.add.label({
       x: width - 170,
@@ -87,25 +96,33 @@ export class BattleScene extends Phaser.Scene {
       if (this.isEnemyActing) return;
       this.sfx?.resume();
       this.sfx?.playUiTap();
-      const playedEnemyCards = this.state.endTurn();
-      this.isEnemyActing = true;
-      this.render();
-      playedEnemyCards.forEach((enemyCard, index) => {
-        this.time.delayedCall(index * 1000, () => {
-          this.animateEnemyCard(enemyCard, this.scale.width - 186, 212 - index * 12);
-          this.addTableCard({
-            name: enemyCard.name,
-            description: enemyCard.description,
-            source: 'enemy',
+      this._animateDiscardHand(() => {
+        const playedEnemyCards = this.state.endPlayerTurn();
+        this.isEnemyActing = true;
+        this.render();
+        playedEnemyCards.forEach((enemyCard, index) => {
+          this.time.delayedCall(index * 1000, () => {
+            this.animateEnemyCard(enemyCard, this.scale.width - 186, 212 - index * 12);
+            this.addTableCard({
+              name: enemyCard.name,
+              description: enemyCard.description,
+              source: 'enemy',
+            });
           });
         });
-      });
-      const flipDelay = playedEnemyCards.length > 0 ? playedEnemyCards.length * 1000 + 360 : 80;
-      this.time.delayedCall(flipDelay, () => {
-        this.flipCurrentTurnCards();
-        this.isEnemyActing = false;
-        this.render(true);
-        if (this.state.isFinished()) this.handleFinishedBattle();
+        const flipDelay = playedEnemyCards.length > 0 ? playedEnemyCards.length * 1000 + 360 : 80;
+        this.time.delayedCall(flipDelay, () => {
+          this.flipCurrentTurnCards();
+          if (this.state.isFinished()) {
+            this.isEnemyActing = false;
+            this.render();
+            this.handleFinishedBattle();
+            return;
+          }
+          this.state.startNextTurn();
+          this.isEnemyActing = false;
+          this.render(0);
+        });
       });
     });
   }
@@ -114,11 +131,11 @@ export class BattleScene extends Phaser.Scene {
     container.removeAll(true);
   }
 
-  render(animateHand = false) {
+  render(animateFromIndex = -1) {
     this.renderPlayer();
     this.renderEnemy();
     this.renderEnemyHand();
-    this.renderHand(animateHand);
+    this.renderHand(animateFromIndex);
     this.renderLog();
     this.renderResult();
   }
@@ -126,27 +143,92 @@ export class BattleScene extends Phaser.Scene {
   renderPlayer() {
     this.clearContainer(this.playerPanel);
     const p = this.state.player;
-    const bg = this.add.image(0, 0, 'ui_panel').setOrigin(0, 0).setDisplaySize(286, 178);
-    const title = this.add.text(18, 14, '玩家', { fontSize: '22px', color: '#f4ead7', fontStyle: 'bold' });
-    const hp = this.add.text(18, 54, `生命：${Math.max(0, p.hp)} / ${p.maxHp}`, { fontSize: '17px', color: '#8b2f2f' });
-    const block = this.add.text(18, 82, `格挡：${p.block}`, { fontSize: '17px', color: '#6a4d24' });
-    const energy = this.add.text(18, 110, `灵力：${p.energy}`, { fontSize: '17px', color: '#a56a1f' });
-    const status = this.add.text(18, 136, `状态: 护体 ${p.status.shielding} / 虚弱 ${p.status.weak} / 易伤 ${p.status.vulnerable}`, { fontSize: '12px', color: '#5d4326', wordWrap: { width: 236 }, lineSpacing: 2 });
+    const relics = this.state.relics || [];
+    const panelH = 178 + (relics.length > 0 ? 46 : 0);
+    const bg = this.add.image(0, 0, 'ui_panel').setOrigin(0, 0).setDisplaySize(286, panelH);
+    const title = this.add.text(18, 14, '玩家', { fontSize: '22px', color: '#f4ead7', fontStyle: 'bold', stroke: '#2a0e04', strokeThickness: 3 });
+    const hp = this.add.text(18, 54, `生命：${Math.max(0, p.hp)} / ${p.maxHp}`, { fontSize: '17px', color: '#cc4444', fontStyle: 'bold' });
+    const block = this.add.text(18, 82, `格挡：${p.block}`, { fontSize: '17px', color: '#8a6020', fontStyle: 'bold' });
+    const energy = this.add.text(18, 110, `灵力：${p.energy}`, { fontSize: '17px', color: '#c8840a', fontStyle: 'bold' });
+    const status = this.add.text(18, 136, `状态: 护体 ${p.status.shielding} / 虚弱 ${p.status.weak} / 易伤 ${p.status.vulnerable}`, { fontSize: '12px', color: '#7a5a30', wordWrap: { width: 236 }, lineSpacing: 2 });
     this.playerPanel.add([bg, title, hp, block, energy, status]);
+    if (relics.length > 0) {
+      const relicLabel = this.add.text(18, 162, '遗物：', { fontSize: '12px', color: '#c8a050', fontStyle: 'bold' });
+      this.playerPanel.add(relicLabel);
+      relics.forEach((relic, i) => {
+        const rx = 66 + i * 46;
+        const ry = 160;
+        const badge = this.add.rectangle(rx, ry, 40, 22, 0x5a3614, 1).setOrigin(0, 0).setStrokeStyle(1, 0xd9a441, 0.55).setInteractive({ useHandCursor: false });
+        const badgeTxt = this.add.text(rx + 20, ry + 11, relic.name.slice(0, 3), {
+          fontSize: '10px', color: '#f0d060', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        badge.on('pointerover', () => {
+          this._showRelicTooltip(relic, this.playerPanel.x + rx + 20, this.playerPanel.y + ry - 10);
+        });
+        badge.on('pointerout', () => this._hideRelicTooltip());
+        this.playerPanel.add([badge, badgeTxt]);
+      });
+    }
+  }
+
+  _showRelicTooltip(relic, wx, wy) {
+    this._hideRelicTooltip();
+    const tipW = 200;
+    const tipH = 68;
+    const tx = Math.min(wx, this.scale.width - tipW - 8);
+    const ty = Math.max(wy - tipH - 4, 8);
+    const tipBg = this.add.rectangle(tx + tipW / 2, ty + tipH / 2, tipW, tipH, 0x1e1208, 0.96).setStrokeStyle(1, 0xd9a441, 0.6).setDepth(100);
+    const tipName = this.add.text(tx + 8, ty + 8, relic.name, { fontSize: '13px', color: '#f0d060', fontStyle: 'bold' }).setDepth(100);
+    const tipDesc = this.add.text(tx + 8, ty + 28, relic.description || '', { fontSize: '11px', color: '#ead8b8', wordWrap: { width: tipW - 16 }, lineSpacing: 2 }).setDepth(100);
+    this._relicTooltip = [tipBg, tipName, tipDesc];
+  }
+
+  _hideRelicTooltip() {
+    if (this._relicTooltip) {
+      this._relicTooltip.forEach(o => o.destroy());
+      this._relicTooltip = null;
+    }
   }
 
   renderEnemy() {
     this.clearContainer(this.enemyPanel);
     const e = this.state.enemy;
     const enemyPreviewCards = this.state.getEnemyPreviewCards();
-    const bg = this.add.image(0, 0, 'ui_panel').setOrigin(0, 0).setDisplaySize(286, 188);
-    const title = this.add.text(18, 14, e.name, { fontSize: '22px', color: '#f4ead7', fontStyle: 'bold' });
-    const hp = this.add.text(18, 54, `生命：${Math.max(0, e.hp)} / ${e.maxHp}`, { fontSize: '17px', color: '#8b2f2f' });
-    const block = this.add.text(18, 82, `格挡：${e.block}`, { fontSize: '17px', color: '#6a4d24' });
-    const intentText = this.add.text(18, 110, `待出牌：未知 ${enemyPreviewCards.length > 0 ? `（本回合 ${enemyPreviewCards.length} 张）` : ''}`, { fontSize: '14px', color: '#9f5f22', wordWrap: { width: 236 } });
-    const status = this.add.text(18, 142, `敌方手牌 ${enemyPreviewCards.length} / 牌堆 ${this.state.enemyDrawPile.length} / 弃牌 ${this.state.enemyDiscardPile.length}
-状态: 虚弱 ${e.status.weak} / 易伤 ${e.status.vulnerable}`, { fontSize: '12px', color: '#5d4326', wordWrap: { width: 236 }, lineSpacing: 2 });
+    const enraged = this.state.isEnraged();
+    const panelH = 188 + (enraged ? 22 : 0);
+    const bg = this.add.image(0, 0, 'ui_panel').setOrigin(0, 0).setDisplaySize(286, panelH);
+    const title = this.add.text(18, 14, e.name, { fontSize: '22px', color: '#f4ead7', fontStyle: 'bold', stroke: '#2a0e04', strokeThickness: 3 });
+    const hp = this.add.text(18, 54, `生命：${Math.max(0, e.hp)} / ${e.maxHp}`, { fontSize: '17px', color: '#cc4444', fontStyle: 'bold' });
+    const block = this.add.text(18, 82, `格挡：${e.block}`, { fontSize: '17px', color: '#8a6020', fontStyle: 'bold' });
+
+    const firstCard = enemyPreviewCards[0];
+    let intentStr = '意图：未知';
+    let intentColor = '#9f5f22';
+    if (firstCard) {
+      const dmg = firstCard.damage ?? (firstCard.type === 'attack' ? firstCard.value : 0);
+      const blk = firstCard.block ?? (firstCard.type === 'block' ? firstCard.value : 0);
+      if (dmg > 0) {
+        intentStr = `⚔ 意图攻击：${firstCard.name}  (-${dmg})`;
+        intentColor = '#cc3322';
+      } else if (blk > 0) {
+        intentStr = `🛡 意图防御：${firstCard.name}  (+${blk})`;
+        intentColor = '#3a6aaa';
+      } else {
+        intentStr = `✦ 意图：${firstCard.name}`;
+        intentColor = '#aa7a22';
+      }
+      if (enemyPreviewCards.length > 1) intentStr += `  +${enemyPreviewCards.length - 1}张`;
+    }
+    const intentText = this.add.text(18, 110, intentStr, {
+      fontSize: '13px', color: intentColor, fontStyle: 'bold',
+      wordWrap: { width: 250 }, stroke: '#1a0c04', strokeThickness: 2,
+    });
+    const status = this.add.text(18, 148, `状态: 虚弱 ${e.status.weak} / 易伤 ${e.status.vulnerable}`, { fontSize: '12px', color: '#7a5a30', wordWrap: { width: 236 }, lineSpacing: 2 });
     this.enemyPanel.add([bg, title, hp, block, intentText, status]);
+    if (enraged) {
+      const enrageBadge = this.add.text(18, 170, '⚠ 暴怒！出牌数 +1', { fontSize: '12px', color: '#ff4020', fontStyle: 'bold', stroke: '#1a0c04', strokeThickness: 2 });
+      this.enemyPanel.add(enrageBadge);
+    }
   }
 
   renderEnemyHand() {
@@ -163,24 +245,34 @@ export class BattleScene extends Phaser.Scene {
       color: '#9f7a43',
     });
     this.enemyHandContainer.add([panel, title, info, nextHint]);
-    previewCards.forEach((_card, index) => {
+    previewCards.forEach((card, index) => {
       const cardX = 30 + index * 72;
-      const cardY = index === 0 ? 44 : 52;
-      const cardBg = this.add.image(cardX, cardY, 'ui_card_back').setOrigin(0, 0).setDisplaySize(index === 0 ? 56 : 52, index === 0 ? 72 : 68).setAlpha(0.98);
-      cardBg.setAngle(index === 0 ? -2 : index % 2 === 0 ? -4 : 4);
-      const marker = index === 0
-        ? this.add.text(cardX + 28, cardY - 8, '即将打出', {
-            fontSize: '10px',
-            color: '#7a3520',
-            fontStyle: 'bold',
-          }).setOrigin(0.5)
-        : null;
-      const displayItems = marker ? [cardBg, marker] : [cardBg];
-      this.enemyHandContainer.add(displayItems);
+      const cardY = index === 0 ? 40 : 52;
+      if (index === 0) {
+        const cardBg = this.add.image(cardX + 28, cardY + 36, 'ui_card_frame').setDisplaySize(56, 72);
+        cardBg.setAngle(-2);
+        const dmg = card.damage ?? (card.type === 'attack' ? card.value : 0);
+        const blk = card.block ?? (card.type === 'block' ? card.value : 0);
+        const effectStr = dmg > 0 ? `攻${dmg}` : blk > 0 ? `防${blk}` : '特';
+        const cardName = this.add.text(cardX + 28, cardY + 22, card.name.slice(0, 4), {
+          fontSize: '9px', color: '#3a1a06', fontStyle: 'bold', align: 'center', wordWrap: { width: 48 },
+        }).setOrigin(0.5);
+        const cardEffect = this.add.text(cardX + 28, cardY + 40, effectStr, {
+          fontSize: '11px', color: dmg > 0 ? '#aa2010' : blk > 0 ? '#1060aa' : '#806020', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        const marker = this.add.text(cardX + 28, cardY + 8, '即将打出', {
+          fontSize: '9px', color: '#7a3520', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        this.enemyHandContainer.add([cardBg, marker, cardName, cardEffect]);
+      } else {
+        const cardBg = this.add.image(cardX + 26, cardY + 36, 'ui_card_back').setDisplaySize(52, 68).setAlpha(0.98);
+        cardBg.setAngle(index % 2 === 0 ? -4 : 4);
+        this.enemyHandContainer.add(cardBg);
+      }
     });
   }
 
-  renderHand(animate = false) {
+  renderHand(animateFromIndex = -1) {
     this.clearContainer(this.handContainer);
     this._handCardBounds = [];
     const deckWorldX = this.handContainer.x + this.state.hand.length * 136 + 80;
@@ -201,7 +293,7 @@ export class BattleScene extends Phaser.Scene {
         card,
         index,
       });
-      if (animate) {
+      if (animateFromIndex >= 0 && index >= animateFromIndex) {
         const items = [bg, title, cost, type, desc, rarity];
         const startOffX = deckWorldX - (this.handContainer.x + x + 63);
         const startOffY = deckWorldY - this.handContainer.y - 94;
@@ -210,7 +302,8 @@ export class BattleScene extends Phaser.Scene {
           item.x += startOffX;
           item.y += startOffY;
         });
-        this.time.delayedCall(index * 80, () => {
+        const delay = (index - animateFromIndex) * 80;
+        this.time.delayedCall(delay, () => {
           this.tweens.add({
             targets: items,
             x: `-=${startOffX}`,
@@ -244,6 +337,8 @@ export class BattleScene extends Phaser.Scene {
     this._handLocked = true;
     const startX = this.handContainer.x + hit.index * 136 + 63;
     const startY = this.handContainer.y + 94;
+    const handSizeBefore = this.state.hand.length - 1;
+    const cardDraw = hit.card.draw || 0;
     const played = this.state.playCard(hit.index);
     if (played) {
       this.sfx?.resume();
@@ -253,7 +348,8 @@ export class BattleScene extends Phaser.Scene {
       this._handCardBounds = [];
       this.clearContainer(this.handContainer);
       this._handLocked = false;
-      this.render();
+      const animFrom = cardDraw > 0 ? handSizeBefore : -1;
+      this.render(animFrom);
       if (this.state.enemy.hp <= 0) this.sfx?.playVictory();
       else this.sfx?.playHit();
     } else {
@@ -425,6 +521,52 @@ export class BattleScene extends Phaser.Scene {
         });
       });
     });
+  }
+
+  _animateDiscardHand(onComplete) {
+    const cards = this.state.hand;
+    if (cards.length === 0) {
+      onComplete();
+      return;
+    }
+    const { width, height } = this.scale;
+    const discardX = width - 170;
+    const discardY = height - 54;
+    const total = cards.length;
+    let done = 0;
+    cards.forEach((card, index) => {
+      const startX = this.handContainer.x + index * 136 + 63;
+      const startY = this.handContainer.y + 94;
+      const ghost = this.add.container(startX, startY);
+      const bg = this.add.image(0, 0, 'ui_card_frame').setDisplaySize(126, 188);
+      const label = this.add.text(0, -60, card.name, {
+        fontSize: '13px', color: '#4a2d18', fontStyle: 'bold',
+        wordWrap: { width: 100 }, align: 'center',
+      }).setOrigin(0.5);
+      ghost.add([bg, label]);
+      ghost.setScale(0.7);
+      ghost.setDepth(30);
+      this.time.delayedCall(index * 60, () => {
+        this.tweens.add({
+          targets: ghost,
+          x: discardX,
+          y: discardY,
+          scaleX: 0.3,
+          scaleY: 0.3,
+          alpha: 0,
+          angle: Phaser.Math.Between(-20, 20),
+          ease: 'Cubic.easeIn',
+          duration: 260,
+          onComplete: () => {
+            ghost.destroy();
+            done += 1;
+            if (done === total) onComplete();
+          },
+        });
+      });
+    });
+    this.clearContainer(this.handContainer);
+    this._handCardBounds = [];
   }
 
   renderLog() {
