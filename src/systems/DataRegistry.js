@@ -2,8 +2,10 @@ import { CARD_LIBRARY } from '../data/cards';
 import { ENEMY_LIBRARY } from '../data/enemies';
 import { STARTER_DECKS } from '../data/starterDecks';
 import { RELIC_LIBRARY } from '../data/relics';
-import { STATUS_EFFECT_LIBRARY } from '../data/statusEffects';
+import { StatusEffects } from '../data/statusEffects';
 import { MAP_ROUTE_LIBRARY } from '../data/mapNodes';
+
+const STATUS_EFFECT_LIBRARY = Object.values(StatusEffects);
 
 export class DataRegistry {
   constructor() {
