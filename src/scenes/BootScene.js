@@ -1,340 +1,182 @@
-/**
- * 加载场景 - Boot Scene
- * 预加载所有游戏资源
- */
+import { DataRegistry } from '../systems/DataRegistry';
+import { SfxManager } from '../systems/SfxManager';
 
-import Phaser from 'phaser';
-import RexUIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
-
-class BootScene extends Phaser.Scene {
+export class BootScene extends Phaser.Scene {
   constructor() {
-    super({ key: 'BootScene' });
+    super('BootScene');
   }
-  
-  preload() {
-    // 显示加载进度条
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    // 进度条背景
-    const progressBar = this.add.graphics();
-    const progressBox = this.add.graphics();
-    progressBox.fillStyle(0x222222, 0.8);
-    progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50);
-    
-    // 加载文字
-    const loadingText = this.add.text(width / 2, height / 2 - 40, '加载中...', {
-      fontSize: '24px',
-      fontFamily: 'Arial',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    
-    // 百分比文字
-    const percentText = this.add.text(width / 2, height / 2 + 35, '0%', {
-      fontSize: '18px',
-      fontFamily: 'Arial',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    
-    // 更新进度
-    this.load.on('progress', (value) => {
-      progressBar.clear();
-      progressBar.fillStyle(0x4a90d9, 1);
-      progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30);
-      percentText.setText(`${parseInt(value * 100)}%`);
-    });
-    
-    // 加载完成
-    this.load.on('complete', () => {
-      progressBar.destroy();
-      progressBox.destroy();
-      loadingText.destroy();
-      percentText.destroy();
-    });
-    
-    // ========== 古风武侠 UI 纹理 ==========
-    const g = this.make.graphics({ x: 0, y: 0, add: false });
 
-    // --- 卡牌背面（古铜锦纹） ---
-    g.fillStyle(0x2b1a0d, 1);
-    g.fillRoundedRect(0, 0, 140, 190, 6);
-    g.fillStyle(0x7a4f24, 1);
-    g.fillRoundedRect(6, 6, 128, 178, 4);
-    g.fillStyle(0x3d200e, 0.5);
-    g.fillRoundedRect(14, 14, 112, 162, 3);
-    g.lineStyle(2, 0xd4a03a, 0.9);
-    g.strokeRoundedRect(1, 1, 138, 188, 6);
-    g.lineStyle(1, 0xe8c96a, 0.5);
-    g.strokeRoundedRect(6, 6, 128, 178, 4);
-    // 菱形装饰
-    g.lineStyle(1, 0xd4a03a, 0.4);
-    g.strokeRect(34, 50, 72, 90);
-    g.strokeRect(42, 62, 56, 66);
-    // 中心圆纹
-    g.strokeCircle(70, 95, 22);
-    g.strokeCircle(70, 95, 12);
-    g.generateTexture('ui_card_back', 140, 190);
-    g.clear();
-
-    // --- 卡牌框架（宣纸米白+木框） ---
-    g.fillStyle(0x1e120a, 1);
-    g.fillRoundedRect(0, 0, 150, 200, 6);
-    g.fillStyle(0xf5e8c8, 1);
-    g.fillRoundedRect(4, 4, 142, 192, 4);
-    g.fillStyle(0xe8d5a8, 1);
-    g.fillRoundedRect(8, 8, 134, 184, 3);
-    g.lineStyle(2, 0x8b5e1a, 1);
-    g.strokeRoundedRect(1, 1, 148, 198, 6);
-    g.lineStyle(1, 0xc49a3c, 0.7);
-    g.strokeRoundedRect(4, 4, 142, 192, 4);
-    g.generateTexture('ui_card_frame', 150, 200);
-    g.clear();
-
-    // --- 面板（深木色+金边） ---
-    g.fillStyle(0x1a0e06, 0.97);
-    g.fillRoundedRect(0, 0, 400, 300, 8);
-    g.fillStyle(0x2e1a0a, 0.94);
-    g.fillRoundedRect(4, 4, 392, 292, 6);
-    g.lineStyle(2, 0xb8892a, 0.85);
-    g.strokeRoundedRect(1, 1, 398, 298, 8);
-    g.lineStyle(1, 0xe8c060, 0.35);
-    g.strokeRoundedRect(5, 5, 390, 290, 6);
-    g.generateTexture('ui_panel', 400, 300);
-    g.clear();
-
-    // --- 横幅（深赭石+金描边） ---
-    g.fillStyle(0x1a0a04, 1);
-    g.fillRect(0, 0, 800, 100);
-    g.fillStyle(0x3a1a08, 1);
-    g.fillRect(2, 2, 796, 96);
-    g.lineStyle(2, 0xc49a3c, 0.9);
-    g.strokeRect(0, 0, 800, 100);
-    g.lineStyle(1, 0xe8c060, 0.3);
-    g.strokeRect(4, 4, 792, 92);
-    // 横幅两端装饰线
-    g.lineStyle(1, 0xc49a3c, 0.5);
-    g.strokeRect(16, 10, 60, 80);
-    g.strokeRect(724, 10, 60, 80);
-    g.generateTexture('ui_banner', 800, 100);
-    g.clear();
-
-    // --- 战场底板（古木色） ---
-    g.fillStyle(0x120a04, 1);
-    g.fillRoundedRect(0, 0, 600, 400, 10);
-    g.fillStyle(0x2a1608, 0.88);
-    g.fillRoundedRect(4, 4, 592, 392, 8);
-    g.lineStyle(2, 0x9a6b22, 0.7);
-    g.strokeRoundedRect(1, 1, 598, 398, 10);
-    g.lineStyle(1, 0xd4a03a, 0.25);
-    g.strokeRoundedRect(6, 6, 588, 388, 7);
-    g.generateTexture('ui_battle_board', 600, 400);
-    g.clear();
-
-    // --- 节点卡（竹简色） ---
-    g.fillStyle(0x1e1208, 1);
-    g.fillRoundedRect(0, 0, 220, 122, 7);
-    g.fillStyle(0xd4b870, 0.12);
-    g.fillRoundedRect(4, 4, 212, 114, 5);
-    g.lineStyle(2, 0xb8892a, 0.8);
-    g.strokeRoundedRect(1, 1, 218, 120, 7);
-    g.lineStyle(1, 0xe0c060, 0.28);
-    g.strokeRoundedRect(5, 5, 210, 112, 5);
-    g.generateTexture('ui_node', 220, 122);
-    g.clear();
-
-    // --- 徽章（朱砂圆印） ---
-    g.fillStyle(0x8a1a0a, 1);
-    g.fillCircle(36, 36, 34);
-    g.fillStyle(0xcc2a10, 1);
-    g.fillCircle(36, 36, 28);
-    g.lineStyle(2, 0xe8c060, 1);
-    g.strokeCircle(36, 36, 34);
-    g.lineStyle(1, 0xf0d880, 0.6);
-    g.strokeCircle(36, 36, 26);
-    g.lineStyle(1, 0xf0d880, 0.35);
-    g.strokeCircle(36, 36, 20);
-    g.generateTexture('ui_badge', 72, 72);
-    g.clear();
-
-    // --- 按钮（朱漆木牌） ---
-    g.fillStyle(0x5c1a06, 1);
-    g.fillRoundedRect(0, 0, 200, 50, 6);
-    g.fillStyle(0x8a2a0e, 1);
-    g.fillRoundedRect(3, 3, 194, 44, 4);
-    g.lineStyle(2, 0xd4a03a, 0.9);
-    g.strokeRoundedRect(1, 1, 198, 48, 6);
-    g.lineStyle(1, 0xe8c060, 0.4);
-    g.strokeRoundedRect(4, 4, 192, 42, 4);
-    g.generateTexture('ui_button', 200, 50);
-    g.clear();
-
-    // --- 灵力圆珠（青玉色） ---
-    g.fillStyle(0x1a6060, 1);
-    g.fillCircle(15, 15, 13);
-    g.fillStyle(0x28a8a8, 0.8);
-    g.fillCircle(13, 12, 8);
-    g.lineStyle(2, 0x60e0d0, 0.9);
-    g.strokeCircle(15, 15, 13);
-    g.lineStyle(1, 0xa0fff0, 0.4);
-    g.strokeCircle(15, 15, 8);
-    g.generateTexture('ui_energy', 30, 30);
-    g.clear();
-
-    // --- 生命（朱砂菱形） ---
-    g.fillStyle(0x8a1a06, 1);
-    g.fillTriangle(15, 2, 28, 14, 15, 28);
-    g.fillTriangle(15, 2, 2, 14, 15, 28);
-    g.fillStyle(0xcc2a10, 1);
-    g.fillTriangle(15, 5, 25, 14, 15, 25);
-    g.fillTriangle(15, 5, 5, 14, 15, 25);
-    g.lineStyle(1, 0xe8c060, 0.7);
-    g.strokeTriangle(15, 2, 28, 14, 15, 28);
-    g.strokeTriangle(15, 2, 2, 14, 15, 28);
-    g.generateTexture('ui_heart', 30, 30);
-    g.clear();
-
-    // --- 灵石（金色六边形） ---
-    g.fillStyle(0x7a5200, 1);
-    g.fillCircle(15, 15, 13);
-    g.fillStyle(0xd4a020, 1);
-    g.fillCircle(15, 15, 10);
-    g.fillStyle(0xf0d060, 0.5);
-    g.fillCircle(12, 12, 5);
-    g.lineStyle(2, 0xf0c040, 0.9);
-    g.strokeCircle(15, 15, 13);
-    g.generateTexture('ui_gold', 30, 30);
-    g.clear();
-
-    g.destroy();
-
-    // ========== 人物头像（水墨风） ==========
-    const ch = this.make.graphics({ x: 0, y: 0, add: false });
-
-    // 玩家头像（青衫侠客）
-    ch.fillStyle(0x1a2a1a, 1);
-    ch.fillCircle(50, 50, 46);
-    // 衣袍
-    ch.fillStyle(0x2a5a4a, 1);
-    ch.fillTriangle(20, 100, 80, 100, 50, 55);
-    ch.fillStyle(0x3a8a6a, 1);
-    ch.fillTriangle(28, 100, 72, 100, 50, 60);
-    // 脸
-    ch.fillStyle(0xd4a87a, 1);
-    ch.fillCircle(50, 42, 20);
-    // 发冠
-    ch.fillStyle(0x1a1a1a, 1);
-    ch.fillRect(32, 22, 36, 12);
-    ch.fillRect(44, 14, 12, 12);
-    // 眼
-    ch.fillStyle(0x1a1a1a, 1);
-    ch.fillRect(38, 38, 6, 4);
-    ch.fillRect(56, 38, 6, 4);
-    // 外圈
-    ch.lineStyle(2, 0x60c090, 0.8);
-    ch.strokeCircle(50, 50, 46);
-    ch.generateTexture('avatar_player', 100, 100);
-    ch.clear();
-
-    // 敌人头像（赤甲武夫）
-    ch.fillStyle(0x1a0a06, 1);
-    ch.fillCircle(50, 50, 46);
-    // 甲胄
-    ch.fillStyle(0x7a1a08, 1);
-    ch.fillTriangle(18, 100, 82, 100, 50, 54);
-    ch.fillStyle(0xaa2a10, 1);
-    ch.fillTriangle(26, 100, 74, 100, 50, 58);
-    // 脸
-    ch.fillStyle(0xc08060, 1);
-    ch.fillCircle(50, 42, 20);
-    // 头盔
-    ch.fillStyle(0x5a1006, 1);
-    ch.fillRect(30, 20, 40, 14);
-    ch.fillRect(35, 12, 30, 12);
-    ch.fillRect(42, 6, 16, 10);
-    // 眼（凶狠）
-    ch.fillStyle(0xee2200, 1);
-    ch.fillRect(37, 36, 8, 5);
-    ch.fillRect(55, 36, 8, 5);
-    // 外圈
-    ch.lineStyle(2, 0xcc3010, 0.8);
-    ch.strokeCircle(50, 50, 46);
-    ch.generateTexture('avatar_enemy', 100, 100);
-    ch.clear();
-
-    ch.destroy();
-
-    // ========== 背景 ==========
-    const bg = this.make.graphics({ x: 0, y: 0, add: false });
-
-    // 默认背景（深墨色）
-    bg.fillStyle(0x0e0a06, 1);
-    bg.fillRect(0, 0, 800, 600);
-    bg.generateTexture('bg_default', 800, 600);
-    bg.clear();
-
-    // 战斗背景（暗赭石）
-    bg.fillStyle(0x120804, 1);
-    bg.fillRect(0, 0, 800, 600);
-    bg.generateTexture('bg_battle', 800, 600);
-    bg.clear();
-
-    // 地图背景（深竹绿）
-    bg.fillStyle(0x080e08, 1);
-    bg.fillRect(0, 0, 800, 600);
-    bg.generateTexture('bg_map', 800, 600);
-    bg.clear();
-
-    bg.destroy();
-
-    // ========== 图标 ==========
-    const ic = this.make.graphics({ x: 0, y: 0, add: false });
-
-    // 剑图标（古剑）
-    ic.fillStyle(0xc8c0a0, 1);
-    ic.fillRect(9, 1, 3, 22);
-    ic.fillRect(3, 8, 15, 3);
-    ic.fillStyle(0x8a5a1a, 1);
-    ic.fillRect(8, 22, 5, 9);
-    ic.lineStyle(1, 0xe8d080, 0.6);
-    ic.strokeRect(9, 1, 3, 22);
-    ic.generateTexture('icon_attack', 21, 32);
-    ic.clear();
-
-    // 盾图标（圆盾）
-    ic.fillStyle(0x4a2a08, 1);
-    ic.fillCircle(11, 14, 11);
-    ic.fillStyle(0x8a5a1a, 1);
-    ic.fillCircle(11, 14, 8);
-    ic.fillStyle(0xc49a3c, 0.5);
-    ic.fillCircle(11, 14, 4);
-    ic.lineStyle(1, 0xe8c060, 0.8);
-    ic.strokeCircle(11, 14, 11);
-    ic.generateTexture('icon_block', 22, 28);
-    ic.clear();
-
-    // 药水图标（丹药瓶）
-    ic.fillStyle(0x7a1a06, 0.9);
-    ic.fillEllipse(11, 18, 16, 16);
-    ic.fillStyle(0x8a8880, 1);
-    ic.fillRect(8, 6, 6, 8);
-    ic.fillRect(6, 10, 10, 4);
-    ic.lineStyle(1, 0xe8c060, 0.5);
-    ic.strokeEllipse(11, 18, 16, 16);
-    ic.generateTexture('icon_potion', 22, 28);
-    ic.clear();
-
-    ic.destroy();
-  }
-  
   create() {
-    // 淡出效果
-    this.cameras.main.fade(500, 0, 0, 0);
-    
-    // 进入主菜单
-    this.time.delayedCall(500, () => {
-      this.scene.start('MenuScene');
-    });
+    this.createTextures();
+    this.registry.set('dataRegistry', new DataRegistry());
+    this.registry.set('sfxManager', new SfxManager());
+    this.scene.start('MenuScene');
+  }
+
+  createTextures() {
+    const panel = this.make.graphics({ add: false });
+    panel.fillStyle(0x2a1d14, 1);
+    panel.fillRoundedRect(0, 0, 320, 200, 10);
+    panel.fillStyle(0x6f4f2d, 0.22);
+    panel.fillRoundedRect(6, 6, 308, 188, 8);
+    panel.fillStyle(0xe0c693, 0.9);
+    panel.fillRoundedRect(16, 16, 288, 168, 6);
+    panel.fillStyle(0xd1b27c, 0.34);
+    panel.fillRoundedRect(16, 16, 288, 38, 6);
+    panel.lineStyle(2, 0x8b5d24, 0.92);
+    panel.strokeRoundedRect(1.5, 1.5, 317, 197, 10);
+    panel.lineStyle(1, 0xf0d29c, 0.42);
+    panel.strokeRoundedRect(8, 8, 304, 184, 8);
+    panel.generateTexture('ui_panel', 320, 200);
+
+    const card = this.make.graphics({ add: false });
+    card.fillStyle(0x2b1d14, 1);
+    card.fillRoundedRect(0, 0, 220, 300, 10);
+    card.fillStyle(0xe6cea0, 0.98);
+    card.fillRoundedRect(10, 10, 200, 280, 6);
+    card.fillStyle(0xd3b483, 0.38);
+    card.fillRoundedRect(10, 10, 200, 42, 6);
+    card.fillStyle(0x5b3420, 0.08);
+    card.fillRoundedRect(16, 78, 188, 120, 6);
+    card.lineStyle(2, 0x8a5a24, 0.94);
+    card.strokeRoundedRect(1.5, 1.5, 217, 297, 10);
+    card.lineStyle(1, 0xf0d5a3, 0.5);
+    card.strokeRoundedRect(8, 8, 204, 284, 6);
+    card.lineStyle(1, 0x8a5a24, 0.55);
+    card.strokeRect(22, 18, 176, 28);
+    card.strokeRect(22, 238, 176, 30);
+    card.generateTexture('ui_card_frame', 220, 300);
+
+    const cardBack = this.make.graphics({ add: false });
+    cardBack.fillStyle(0x2b1d14, 1);
+    cardBack.fillRoundedRect(0, 0, 220, 300, 10);
+    cardBack.fillStyle(0x8f6a36, 0.96);
+    cardBack.fillRoundedRect(10, 10, 200, 280, 6);
+    cardBack.fillStyle(0x5c3c1d, 0.22);
+    cardBack.fillRoundedRect(22, 22, 176, 256, 6);
+    cardBack.lineStyle(2, 0x8a5a24, 0.94);
+    cardBack.strokeRoundedRect(1.5, 1.5, 217, 297, 10);
+    cardBack.lineStyle(1, 0xf0d5a3, 0.46);
+    cardBack.strokeRoundedRect(8, 8, 204, 284, 6);
+    cardBack.lineStyle(1, 0xead19a, 0.28);
+    cardBack.strokeCircle(110, 150, 56);
+    cardBack.strokeCircle(110, 150, 32);
+    cardBack.strokeRect(54, 94, 112, 112);
+    cardBack.lineStyle(2, 0x6c4923, 0.45);
+    cardBack.strokeRect(70, 110, 80, 80);
+    cardBack.generateTexture('ui_card_back', 220, 300);
+
+    const node = this.make.graphics({ add: false });
+    node.fillStyle(0x2c1e15, 1);
+    node.fillRoundedRect(0, 0, 240, 128, 9);
+    node.fillStyle(0xe0c795, 0.94);
+    node.fillRoundedRect(10, 10, 220, 108, 6);
+    node.fillStyle(0xcfa866, 0.32);
+    node.fillRoundedRect(10, 10, 220, 28, 6);
+    node.lineStyle(2, 0x8b5d24, 0.9);
+    node.strokeRoundedRect(1.5, 1.5, 237, 125, 9);
+    node.lineStyle(1, 0xf3d8a7, 0.45);
+    node.strokeRoundedRect(8, 8, 224, 112, 6);
+    node.generateTexture('ui_node', 240, 128);
+
+    const banner = this.make.graphics({ add: false });
+    banner.fillStyle(0x6c4a28, 1);
+    banner.fillRoundedRect(10, 18, 400, 44, 10);
+    banner.fillStyle(0xe5c993, 0.95);
+    banner.fillRoundedRect(22, 22, 376, 36, 8);
+    banner.lineStyle(2, 0x8a5a24, 0.9);
+    banner.strokeRoundedRect(10, 18, 400, 44, 10);
+    banner.lineStyle(1, 0x8a5a24, 0.85);
+    banner.strokeCircle(36, 40, 10);
+    banner.strokeCircle(384, 40, 10);
+    banner.fillStyle(0x8a5a24, 0.72);
+    banner.fillCircle(36, 40, 4);
+    banner.fillCircle(384, 40, 4);
+    banner.generateTexture('ui_banner', 420, 80);
+
+    const board = this.make.graphics({ add: false });
+    board.fillStyle(0x23170f, 1);
+    board.fillRoundedRect(0, 0, 760, 250, 6);
+    board.fillStyle(0x6c4a28, 0.24);
+    board.fillRoundedRect(6, 6, 748, 238, 4);
+    board.fillStyle(0xdbc28f, 0.86);
+    board.fillRoundedRect(12, 12, 736, 226, 4);
+    board.fillStyle(0xcaa46a, 0.28);
+    board.fillRoundedRect(12, 12, 736, 26, 4);
+    board.lineStyle(2, 0x8b5d24, 0.92);
+    board.strokeRoundedRect(1.5, 1.5, 757, 247, 6);
+    board.lineStyle(1, 0xf0d3a1, 0.45);
+    board.strokeRoundedRect(6, 6, 748, 238, 4);
+    board.lineStyle(1, 0x7a4d1f, 0.62);
+    board.strokeRect(28, 60, 704, 158);
+    board.lineStyle(1, 0xa77d42, 0.45);
+    board.strokeRoundedRect(168, 82, 424, 114, 4);
+    board.generateTexture('ui_battle_board', 760, 250);
+
+    const talisman = this.make.graphics({ add: false });
+    talisman.fillStyle(0xe3c995, 0.96);
+    talisman.fillRoundedRect(0, 0, 132, 164, 8);
+    talisman.lineStyle(2, 0x8a5a24, 0.82);
+    talisman.strokeRoundedRect(1.5, 1.5, 129, 161, 8);
+    talisman.fillStyle(0x8d5d25, 0.78);
+    talisman.fillRect(58, 18, 16, 100);
+    talisman.fillStyle(0x6b1f1a, 0.8);
+    talisman.fillRect(42, 124, 48, 10);
+    talisman.lineStyle(1, 0x8a5a24, 0.6);
+    talisman.strokeRect(22, 18, 88, 120);
+    talisman.generateTexture('ui_talisman', 132, 164);
+
+    const playerAvatar = this.make.graphics({ add: false });
+    playerAvatar.fillStyle(0x8b5d24, 0.16);
+    playerAvatar.fillCircle(48, 48, 44);
+    playerAvatar.fillStyle(0x7b4f1f, 1);
+    playerAvatar.fillRoundedRect(24, 44, 48, 40, 8);
+    playerAvatar.fillStyle(0x593616, 1);
+    playerAvatar.fillRoundedRect(24, 44, 10, 40, 8);
+    playerAvatar.fillStyle(0xf0c890, 1);
+    playerAvatar.fillCircle(48, 28, 16);
+    playerAvatar.fillStyle(0x2b1b14, 1);
+    playerAvatar.fillRoundedRect(31, 11, 34, 16, 7);
+    playerAvatar.fillStyle(0xd3a24c, 1);
+    playerAvatar.fillRect(29, 16, 38, 3);
+    playerAvatar.fillStyle(0xffffff, 0.95);
+    playerAvatar.fillEllipse(42, 29, 8, 5);
+    playerAvatar.fillEllipse(54, 29, 8, 5);
+    playerAvatar.fillStyle(0x4f3218, 1);
+    playerAvatar.fillCircle(42, 29, 2.2);
+    playerAvatar.fillCircle(54, 29, 2.2);
+    playerAvatar.lineStyle(2, 0xc49343, 0.84);
+    playerAvatar.strokeCircle(48, 48, 43);
+    playerAvatar.generateTexture('avatar_player', 96, 96);
+
+    const enemyAvatar = this.make.graphics({ add: false });
+    enemyAvatar.fillStyle(0x8b5d24, 0.14);
+    enemyAvatar.fillCircle(48, 48, 44);
+    enemyAvatar.fillStyle(0x6b3d1f, 1);
+    enemyAvatar.fillRoundedRect(24, 44, 48, 40, 8);
+    enemyAvatar.fillStyle(0x4b2712, 1);
+    enemyAvatar.fillRoundedRect(24, 44, 10, 40, 8);
+    enemyAvatar.fillStyle(0xd8b888, 1);
+    enemyAvatar.fillCircle(48, 28, 16);
+    enemyAvatar.fillStyle(0x2a1b13, 1);
+    enemyAvatar.fillRoundedRect(30, 10, 36, 18, 8);
+    enemyAvatar.fillStyle(0xffffff, 0.85);
+    enemyAvatar.fillEllipse(42, 29, 8, 5);
+    enemyAvatar.fillEllipse(54, 29, 8, 5);
+    enemyAvatar.fillStyle(0x6a2e18, 1);
+    enemyAvatar.fillCircle(42, 29, 2.4);
+    enemyAvatar.fillCircle(54, 29, 2.4);
+    enemyAvatar.lineStyle(2, 0xb07a34, 0.84);
+    enemyAvatar.strokeCircle(48, 48, 43);
+    enemyAvatar.generateTexture('avatar_enemy', 96, 96);
+
+    const badge = this.make.graphics({ add: false });
+    badge.fillStyle(0x8a5a24, 1);
+    badge.fillCircle(24, 24, 20);
+    badge.fillStyle(0xe6c98f, 0.9);
+    badge.fillCircle(24, 24, 13);
+    badge.lineStyle(1, 0xf0d3a1, 0.7);
+    badge.strokeCircle(24, 24, 18);
+    badge.generateTexture('ui_badge', 48, 48);
   }
 }
-
-export { BootScene };

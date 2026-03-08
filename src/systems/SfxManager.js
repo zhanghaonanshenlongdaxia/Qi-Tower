@@ -66,56 +66,11 @@ export class SfxManager {
   }
 
   playCard() {
-    const ctx = this.getContext();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume();
-    const now = ctx.currentTime;
-
-    // 白噪音缓冲（卡片摩擦/甩出感）
-    const bufLen = ctx.sampleRate * 0.06;
-    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufLen; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 2.8);
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buf;
-
-    // 高通滤波，去掉低频，让声音更脆
-    const hpf = ctx.createBiquadFilter();
-    hpf.type = 'highpass';
-    hpf.frequency.value = 2400;
-
-    // 低通，防止太尖锐
-    const lpf = ctx.createBiquadFilter();
-    lpf.type = 'lowpass';
-    lpf.frequency.value = 7000;
-
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.72, now + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
-
-    noise.connect(hpf);
-    hpf.connect(lpf);
-    lpf.connect(gain);
-    gain.connect(ctx.destination);
-    noise.start(now);
-    noise.stop(now + 0.06);
-
-    // 叠一个短促的低频冲击音（落桌感）
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(60, now + 0.03);
-    oscGain.gain.setValueAtTime(0.0001, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.3, now + 0.005);
-    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
-    osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.04);
+    this.playSequence([
+      { frequency: 320, endFrequency: 180, duration: 0.022, type: 'square', gain: 0.5 },
+      { frequency: 1240, endFrequency: 760, duration: 0.012, type: 'triangle', gain: 0.2, offset: 0.002 },
+      { frequency: 720, endFrequency: 420, duration: 0.018, type: 'square', gain: 0.16, offset: 0.004 },
+    ], { volume: 0.082 });
   }
 
   playEnemyCard(enemyId) {

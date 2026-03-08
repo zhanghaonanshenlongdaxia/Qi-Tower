@@ -12,12 +12,8 @@ export class BattleScene extends Phaser.Scene {
     this.sfx = this.registry.get('sfxManager');
     this.tableCards = [];
     this.currentTurnCards = [];
-    this.isEnemyActing = false;
-    this._handLocked = false;
-    this._handCardBounds = [];
     this.createLayout();
-    this.input.on('pointerdown', (pointer) => this._onHandPointerDown(pointer));
-    this.render(true);
+    this.render();
   }
 
   createLayout() {
@@ -58,8 +54,8 @@ export class BattleScene extends Phaser.Scene {
     this.add.image(44, 52, 'avatar_player').setScale(0.54);
     this.add.image(width - 44, 52, 'avatar_enemy').setScale(0.54);
 
-    this.add.text(width / 2, 58, '对决', {
-      fontSize: '32px',
+    this.add.text(width / 2, 58, '战斗界面', {
+      fontSize: '28px',
       color: '#f4ead7',
       fontStyle: 'bold',
     }).setOrigin(0.5);
@@ -84,12 +80,9 @@ export class BattleScene extends Phaser.Scene {
         this.handleFinishedBattle();
         return;
       }
-      if (this.isEnemyActing) return;
       this.sfx?.resume();
       this.sfx?.playUiTap();
       const playedEnemyCards = this.state.endTurn();
-      this.isEnemyActing = true;
-      this.render();
       playedEnemyCards.forEach((enemyCard, index) => {
         this.time.delayedCall(index * 1000, () => {
           this.animateEnemyCard(enemyCard, this.scale.width - 186, 212 - index * 12);
@@ -100,11 +93,10 @@ export class BattleScene extends Phaser.Scene {
           });
         });
       });
+      this.render();
       const flipDelay = playedEnemyCards.length > 0 ? playedEnemyCards.length * 1000 + 360 : 80;
       this.time.delayedCall(flipDelay, () => {
         this.flipCurrentTurnCards();
-        this.isEnemyActing = false;
-        this.render(true);
         if (this.state.isFinished()) this.handleFinishedBattle();
       });
     });
@@ -114,11 +106,11 @@ export class BattleScene extends Phaser.Scene {
     container.removeAll(true);
   }
 
-  render(animateHand = false) {
+  render() {
     this.renderPlayer();
     this.renderEnemy();
     this.renderEnemyHand();
-    this.renderHand(animateHand);
+    this.renderHand();
     this.renderLog();
     this.renderResult();
   }
@@ -180,85 +172,40 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  renderHand(animate = false) {
+  renderHand() {
     this.clearContainer(this.handContainer);
-    this._handCardBounds = [];
-    const deckWorldX = this.handContainer.x + this.state.hand.length * 136 + 80;
-    const deckWorldY = this.handContainer.y + 94;
     this.state.hand.forEach((card, index) => {
       const x = index * 136;
-      const bg = this.add.image(x, 0, 'ui_card_frame').setOrigin(0, 0).setDisplaySize(126, 188);
+      const bg = this.add.image(x, 0, 'ui_card_frame').setOrigin(0, 0).setDisplaySize(126, 188).setInteractive({ useHandCursor: true });
       const title = this.add.text(x + 10, 14, card.name, { fontSize: '15px', color: '#4a2d18', fontStyle: 'bold', wordWrap: { width: 100 }, maxLines: 2 });
       const cost = this.add.text(x + 10, 44, `耗能 ${card.cost}`, { fontSize: '11px', color: '#8d5a18' });
       const type = this.add.text(x + 10, 62, `类型 ${card.type}`, { fontSize: '11px', color: '#6a4d24' });
       const desc = this.add.text(x + 10, 86, card.description, { fontSize: '11px', color: '#5a4024', wordWrap: { width: 100 }, lineSpacing: 1, maxLines: 5 });
       const rarity = this.add.text(x + 10, 158, String(card.rarity).toUpperCase(), { fontSize: '10px', color: '#7b5f27', fontStyle: 'bold' });
-      this._handCardBounds.push({
-        worldX: this.handContainer.x + x,
-        worldY: this.handContainer.y,
-        w: 126,
-        h: 188,
-        card,
-        index,
-      });
-      if (animate) {
-        const items = [bg, title, cost, type, desc, rarity];
-        const startOffX = deckWorldX - (this.handContainer.x + x + 63);
-        const startOffY = deckWorldY - this.handContainer.y - 94;
-        items.forEach(item => {
-          item.setAlpha(0);
-          item.x += startOffX;
-          item.y += startOffY;
-        });
-        this.time.delayedCall(index * 80, () => {
-          this.tweens.add({
-            targets: items,
-            x: `-=${startOffX}`,
-            y: `-=${startOffY}`,
-            alpha: 1,
-            duration: 180,
-            ease: 'Cubic.easeOut',
+      bg.on('pointerdown', () => {
+        if (this.state.isFinished()) return;
+        const startX = this.handContainer.x + x + 63;
+        const startY = this.handContainer.y + 94;
+        const played = this.state.playCard(index);
+        if (played) {
+          this.sfx?.resume();
+          this.sfx?.playCard();
+          this.animatePlayedCard(card, startX, startY);
+          this.addTableCard({
+            name: card.name,
+            description: card.description,
+            source: 'player',
           });
-        });
-      }
+          this.render();
+          if (this.state.enemy.hp <= 0) {
+            this.sfx?.playVictory();
+          } else {
+            this.sfx?.playHit();
+          }
+        }
+      });
       this.handContainer.add([bg, title, cost, type, desc, rarity]);
     });
-  }
-
-  _onHandPointerDown(pointer) {
-    if (this.state.isFinished()) return;
-    if (this.isEnemyActing) return;
-    if (this._handLocked) return;
-    if (!this._handCardBounds || this._handCardBounds.length === 0) return;
-    const px = pointer.x;
-    const py = pointer.y;
-    let hit = null;
-    for (let i = this._handCardBounds.length - 1; i >= 0; i--) {
-      const b = this._handCardBounds[i];
-      if (px >= b.worldX && px <= b.worldX + b.w && py >= b.worldY && py <= b.worldY + b.h) {
-        hit = b;
-        break;
-      }
-    }
-    if (!hit) return;
-    this._handLocked = true;
-    const startX = this.handContainer.x + hit.index * 136 + 63;
-    const startY = this.handContainer.y + 94;
-    const played = this.state.playCard(hit.index);
-    if (played) {
-      this.sfx?.resume();
-      this.sfx?.playCard();
-      this.animatePlayedCard(hit.card, startX, startY);
-      this.addTableCard({ name: hit.card.name, description: hit.card.description, source: 'player' });
-      this._handCardBounds = [];
-      this.clearContainer(this.handContainer);
-      this._handLocked = false;
-      this.render();
-      if (this.state.enemy.hp <= 0) this.sfx?.playVictory();
-      else this.sfx?.playHit();
-    } else {
-      this._handLocked = false;
-    }
   }
 
   animatePlayedCard(card, startX, startY) {
@@ -266,9 +213,7 @@ export class BattleScene extends Phaser.Scene {
       this.playedCardPreview.destroy();
       this.playedCardPreview = null;
     }
-    const midX = (startX + this.playZone.x) * 0.5;
-    const midY = Math.min(startY, this.playZone.y) - 30;
-    const preview = this.add.container(midX, midY);
+    const preview = this.add.container(startX, startY);
     const bg = this.add.image(0, 0, 'ui_card_frame').setDisplaySize(118, 172);
     const title = this.add.text(0, -52, card.name, {
       fontSize: '16px',
@@ -285,7 +230,6 @@ export class BattleScene extends Phaser.Scene {
       lineSpacing: 1,
     }).setOrigin(0.5);
     preview.add([bg, title, desc]);
-    preview.setScale(0.85);
     this.playedCardPreview = preview;
     this.playZoneLabel.setAlpha(0.22);
 
@@ -293,11 +237,11 @@ export class BattleScene extends Phaser.Scene {
       targets: preview,
       x: this.playZone.x,
       y: this.playZone.y,
+      angle: Phaser.Math.Between(-10, 10),
       scaleX: 0.92,
       scaleY: 0.92,
-      angle: Phaser.Math.Between(-10, 10),
       ease: 'Cubic.easeOut',
-      duration: 200,
+      duration: 240,
       onComplete: () => {
         preview.destroy();
         if (this.playedCardPreview === preview) {
