@@ -1,4 +1,6 @@
 import { GAME_CONFIG } from '../config/gameConfig';
+import { DataRegistry } from '../systems/DataRegistry';
+import { SfxManager } from '../systems/SfxManager';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -7,6 +9,12 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
+    if (!this.registry.get('dataRegistry')) {
+      this.registry.set('dataRegistry', new DataRegistry());
+    }
+    if (!this.registry.get('sfxManager')) {
+      this.registry.set('sfxManager', new SfxManager());
+    }
     this.sfx = this.registry.get('sfxManager');
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x120d0a, 1);
@@ -20,15 +28,15 @@ export class MenuScene extends Phaser.Scene {
     this.add.image(width - 78, 98, 'avatar_enemy').setScale(0.72);
     this.add.image(width / 2, 74, 'ui_badge').setScale(0.74);
 
-    this.add.text(width / 2, 108, 'Game2 - 数据驱动卡牌原型', {
-      fontSize: '24px',
-      color: GAME_CONFIG.COLORS.text,
+    this.add.text(width / 2, 108, '江湖试炼', {
+      fontSize: '34px',
+      color: '#f4ead7',
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, 196, '局内走地图节点，战斗胜利后进行奖励选牌，所有卡牌与状态都由数据驱动。', {
+    this.add.text(width / 2, 196, '游历山河，历经试炼，以卡牌之力定乾坤。胜则奖赏，败则轮回。', {
       fontSize: '16px',
-      color: '#f0dfc0',
+      color: '#e0c898',
       align: 'center',
       wordWrap: { width: 500 },
     }).setOrigin(0.5);
