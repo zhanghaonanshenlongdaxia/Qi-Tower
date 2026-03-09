@@ -1,3 +1,5 @@
+import { UIHelper } from '../utils/UIHelper';
+
 export class RewardScene extends Phaser.Scene {
   constructor() {
     super('RewardScene');

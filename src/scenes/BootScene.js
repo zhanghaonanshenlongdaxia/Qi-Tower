@@ -52,6 +52,9 @@ class BootScene extends Phaser.Scene {
       percentText.destroy();
     });
     
+    // ========== 加载九宫格背景 ==========
+    this.load.image('panel_bg_nineslice', 'UI/bg.png');
+    
     // ========== 古风武侠 UI 纹理 ==========
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 
@@ -327,6 +330,24 @@ class BootScene extends Phaser.Scene {
   }
   
   create() {
+    // 将大尺寸背景图缩小为适合游戏分辨率的纹理
+    const srcTex = this.textures.get('panel_bg_nineslice');
+    if (srcTex && srcTex.key !== '__MISSING') {
+      const srcImg = srcTex.getSourceImage();
+      // 原图 1672x2508，按比例缩小到约 558x837（原图 1/3）
+      const scale = 1 / 3;
+      const newW = Math.round(srcImg.width * scale);
+      const newH = Math.round(srcImg.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = newW;
+      canvas.height = newH;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(srcImg, 0, 0, newW, newH);
+      // 用缩小后的 canvas 生成新纹理，替换原来的
+      this.textures.remove('panel_bg_nineslice');
+      this.textures.addCanvas('panel_bg_nineslice', canvas);
+    }
+
     // 淡出效果
     this.cameras.main.fade(500, 0, 0, 0);
     

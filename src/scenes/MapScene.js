@@ -1,4 +1,5 @@
 import { EVENT_LIBRARY } from '../data/events';
+import { UIHelper } from '../utils/UIHelper';
 
 export class MapScene extends Phaser.Scene {
   constructor() {
@@ -26,7 +27,7 @@ export class MapScene extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2, width, height, 0x120d0a, 1);
     this.add.circle(160, 120, 180, 0x7a552d, 0.14);
     this.add.circle(width - 180, 160, 200, 0x4b2a18, 0.14);
-    this.add.image(width / 2, height / 2, 'ui_panel').setDisplaySize(width - 92, height - 92);
+    UIHelper.createPanel(this, width / 2, height / 2, width - 92, height - 92);
     this.add.image(width / 2, 96, 'ui_banner').setScale(0.96);
     this.add.image(width / 2, 70, 'ui_badge').setScale(0.64);
 

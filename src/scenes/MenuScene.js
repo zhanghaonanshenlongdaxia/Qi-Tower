@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../config/gameConfig';
 import { DataRegistry } from '../systems/DataRegistry';
 import { SfxManager } from '../systems/SfxManager';
+import { UIHelper } from '../utils/UIHelper';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -22,7 +23,7 @@ export class MenuScene extends Phaser.Scene {
     this.add.circle(width * 0.84, height * 0.22, 220, 0x4d2818, 0.14);
     this.add.circle(width * 0.5, height * 0.88, 260, 0x362012, 0.16);
 
-    this.add.image(width / 2, height / 2, 'ui_panel').setDisplaySize(940, 520);
+    UIHelper.createPanel(this, width / 2, height / 2, 940, 520);
     this.add.image(width / 2, 106, 'ui_banner').setScale(0.88);
     this.add.image(78, 98, 'avatar_player').setScale(0.72);
     this.add.image(width - 78, 98, 'avatar_enemy').setScale(0.72);
