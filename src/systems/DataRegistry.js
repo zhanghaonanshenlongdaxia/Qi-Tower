@@ -53,10 +53,16 @@ export class DataRegistry {
     return deck.cards.map(cardId => this.getCard(cardId)).filter(Boolean);
   }
 
-  buildRuntimeDeck(deckId, bonusCards = []) {
+  buildRuntimeDeck(deckId, bonusCards = [], removedCardIds = []) {
     const baseCards = this.buildDeckCards(deckId);
     const extraCards = bonusCards.map(cardId => this.getCard(cardId)).filter(Boolean);
-    return [...baseCards, ...extraCards];
+    const runtimeDeck = [...baseCards, ...extraCards];
+    const removalQueue = [...removedCardIds];
+    removalQueue.forEach((removedId) => {
+      const index = runtimeDeck.findIndex(card => card.id === removedId);
+      if (index >= 0) runtimeDeck.splice(index, 1);
+    });
+    return runtimeDeck;
   }
 
   getRewardCardChoices(count = 3, guaranteeRare = false) {

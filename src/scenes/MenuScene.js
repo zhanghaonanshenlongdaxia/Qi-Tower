@@ -45,15 +45,22 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const featurePanel = this.add.image(width / 2, 334, 'ui_panel').setDisplaySize(620, 156).setAlpha(0.92);
-    this.add.text(featurePanel.x, featurePanel.y - 24, '当前已接入：卡牌库 / 敌人库 / 初始卡组 / 遗物库 / 地图节点 / 奖励选牌 / 状态效果', {
+    this.add.text(featurePanel.x, featurePanel.y - 30, '当前已接入：英雄选择 / 多路线地图 / 奇遇事件 / 商店 / 奖励选牌 / 遗物奖励 / 敌人意图 / 状态效果', {
       fontSize: '18px',
       color: '#f0d890',
       align: 'center',
       wordWrap: { width: 470 },
       stroke: '#3a1a08', strokeThickness: 3,
     }).setOrigin(0.5);
-    this.add.text(featurePanel.x, featurePanel.y + 20, '下一步适合继续扩充：事件节点、商店、更多职业卡组、更多敌人意图。', {
-      fontSize: '15px',
+    this.add.text(featurePanel.x, featurePanel.y + 8, '新手流程：① 选择英雄与路线 ② 地图推进并处理事件/商店 ③ 战斗胜利后领取卡牌与遗物奖励', {
+      fontSize: '14px',
+      color: '#ead5ad',
+      align: 'center',
+      wordWrap: { width: 470 },
+      stroke: '#2a0e04', strokeThickness: 2,
+    }).setOrigin(0.5);
+    this.add.text(featurePanel.x, featurePanel.y + 42, '成长重点：精英/Boss 会带来更高质量奖励，部分事件还会影响下一场战斗。', {
+      fontSize: '14px',
       color: '#ead5ad',
       align: 'center',
       wordWrap: { width: 470 },

@@ -13,6 +13,14 @@ const createStatusBag = () => ({
   weak: 0,
   vulnerable: 0,
   shielding: 0,
+  poison: 0,
+  burn: 0,
+  strength: 0,
+  dexterity: 0,
+  regenerate: 0,
+  focus: 0,
+  sealed: 0,
+  stun: 0,
 });
 
 const buildEnemyDeck = (enemyData) => {
@@ -51,6 +59,8 @@ export class BattleState {
       hp: startingHp,
       block: 0,
       energy: GAME_CONFIG.BATTLE.baseEnergy,
+      strength: options.mapProgress?.nextBattleBuffs?.strength || 0,
+      dexterity: options.mapProgress?.nextBattleBuffs?.dexterity || 0,
       status: createStatusBag(),
     };
     const enemyData = registry.getEnemy(options.enemyId);
@@ -59,14 +69,28 @@ export class BattleState {
       hp: enemyData.maxHp,
       block: 0,
       cardsPerTurn: enemyData.cardsPerTurn || 2,
+      bonusLabel: options.mapProgress?.nextBattleModifiers?.label || null,
       status: createStatusBag(),
     };
+    if (options.mapProgress?.nextBattleModifiers?.enemyBonusHpPercent) {
+      const hpMultiplier = 1 + options.mapProgress.nextBattleModifiers.enemyBonusHpPercent;
+      this.enemy.maxHp = Math.ceil(this.enemy.maxHp * hpMultiplier);
+      this.enemy.hp = this.enemy.maxHp;
+    }
+    if (options.mapProgress?.nextBattleModifiers?.enemyExtraCards) {
+      this.enemy.cardsPerTurn += options.mapProgress.nextBattleModifiers.enemyExtraCards;
+    }
     this.enemyDeck = shuffle(buildEnemyDeck(enemyData));
     this.enemyDrawPile = [...this.enemyDeck];
     this.enemyDiscardPile = [];
     this.enemyHand = [];
+    this.enemyUsedOnceCards = new Set();
     this.currentEnemyCard = null;
-    this.deck = shuffle(registry.buildRuntimeDeck(options.deckId, options.mapProgress?.bonusCards || []));
+    this.deck = shuffle(registry.buildRuntimeDeck(
+      options.deckId,
+      options.mapProgress?.bonusCards || [],
+      options.mapProgress?.removedCardIds || [],
+    ));
     this.drawPile = [...this.deck];
     this.discardPile = [];
     this.hand = [];
@@ -74,11 +98,21 @@ export class BattleState {
     this.turn = 1;
     this.log = [];
     this.rewardCards = [];
+    this.rewardRelics = [];
     this.applyBattleStartRelics();
     this.startTurn();
   }
 
   applyBattleStartRelics() {
+    if (this.player.strength > 0) {
+      this.pushLog(`战前感悟生效，获得 ${this.player.strength} 点力量。`);
+    }
+    if (this.player.dexterity > 0) {
+      this.pushLog(`战前感悟生效，获得 ${this.player.dexterity} 点敏捷。`);
+    }
+    if (this.enemy.bonusLabel) {
+      this.pushLog(`敌人受到【${this.enemy.bonusLabel}】影响，战力显著提升。`);
+    }
     this.relics.forEach((relic) => {
       if (relic.onBattleStart?.block) {
         this.player.block += relic.onBattleStart.block;
@@ -87,6 +121,14 @@ export class BattleState {
   }
 
   startTurn() {
+    if (this.player.status.stun > 0) {
+      this.player.status.stun = Math.max(0, this.player.status.stun - 1);
+      this.player.block = 0;
+      this.player.energy = 0;
+      this.planEnemyTurn();
+      this.pushLog(`第 ${this.turn} 回合开始，但玩家因眩晕跳过本回合。`);
+      return;
+    }
     this.player.block = 0;
     this.player.energy = GAME_CONFIG.BATTLE.baseEnergy;
     if (this.player.status.shielding > 0) {
@@ -134,8 +176,10 @@ export class BattleState {
   drawEnemyCardWithPreference(predicate) {
     this.ensureEnemyDrawPile();
     if (this.enemyDrawPile.length === 0) return null;
-    const preferredIndex = this.enemyDrawPile.findIndex(predicate);
-    const index = preferredIndex >= 0 ? preferredIndex : 0;
+    const canUseCard = card => !(card.oncePerBattle && this.enemyUsedOnceCards.has(card.id));
+    const preferredIndex = this.enemyDrawPile.findIndex(card => canUseCard(card) && predicate(card));
+    const fallbackIndex = this.enemyDrawPile.findIndex(canUseCard);
+    const index = preferredIndex >= 0 ? preferredIndex : (fallbackIndex >= 0 ? fallbackIndex : 0);
     const [card] = this.enemyDrawPile.splice(index, 1);
     return card || null;
   }
@@ -182,6 +226,28 @@ export class BattleState {
       if (this.player.status.vulnerable === 0 && slotIndex === 0) return card => card.applyStatus?.id === 'vulnerable';
       return card => card.damage || card.value || card.type === 'attack';
     }
+    if (this.enemy.id === 'death_knight') {
+      if (this.enemy.hp / this.enemy.maxHp <= 0.55) return card => card.lifesteal || card.block || card.type === 'block';
+      return card => card.damage || card.value || card.type === 'attack';
+    }
+    if (this.enemy.id === 'demon_lord') {
+      if (this.enemy.status.strength === 0 && this.enemy.hp > 10) return card => card.cost?.hp || card.applyStatus?.target === 'self';
+      return card => card.damage || card.value || card.type === 'attack';
+    }
+    if (this.enemy.id === 'heaven_emperor') {
+      if (this.enemy.hp / this.enemy.maxHp <= 0.4) return card => card.heal || card.block || card.type === 'block';
+      if (this.enemy.status.strength === 0) return card => card.applyStatus?.id === 'strength';
+      if (this.enemy.status.focus === 0) return card => card.applyStatus?.id === 'focus';
+      return card => card.damage || card.value || card.type === 'attack';
+    }
+    if (this.enemy.id === 'echo_duelist') {
+      if (slotIndex === 0 && (this.player.status.weak === 0 || this.player.status.vulnerable === 0)) {
+        return card => Array.isArray(card.applyStatuses) && card.applyStatuses.some(entry => entry.id === 'weak' || entry.id === 'vulnerable');
+      }
+      if (this.enemy.block === 0 && slotIndex > 0) return card => card.block || card.type === 'block';
+      if (this.enemy.status.strength === 0) return card => card.applyStatus?.id === 'strength';
+      return card => card.damage || card.value || card.type === 'attack';
+    }
     return () => true;
   }
 
@@ -215,6 +281,12 @@ export class BattleState {
 
   getDamageAfterModifiers(baseDamage, source, target) {
     let damage = baseDamage;
+    if (source === this.player && this.player.strength > 0) {
+      damage += this.player.strength;
+    }
+    if (source?.status?.strength > 0) {
+      damage += source.status.strength * (3 + (source.status.focus || 0));
+    }
     if (source.status.weak > 0) {
       damage = Math.floor(damage * 0.75);
     }
@@ -230,6 +302,7 @@ export class BattleState {
     target.block = Math.max(0, target.block - modified);
     target.hp -= dealt;
     this.pushLog(`${sourceName} 造成 ${dealt} 点伤害。`);
+    return dealt;
   }
 
   applyStatus(target, statusId, stacks) {
@@ -239,22 +312,48 @@ export class BattleState {
     this.pushLog(`${target === this.player ? '玩家' : this.enemy.name} 获得 ${stacks} 层${status?.name || statusId}。`);
   }
 
+  applyStatuses(entries = []) {
+    entries.forEach((entry) => {
+      const target = entry.target === 'self' ? this.enemy : this.player;
+      this.applyStatus(target, entry.id, entry.stacks);
+    });
+  }
+
   decayStatus(statusBag) {
-    ['weak', 'vulnerable'].forEach((key) => {
+    ['weak', 'vulnerable', 'sealed'].forEach((key) => {
       if (statusBag[key] > 0) statusBag[key] -= 1;
     });
   }
 
+  resolveEndOfTurnStatus(target, targetName) {
+    if (target.status.poison > 0) {
+      const poisonDamage = target.status.poison * 3;
+      target.hp -= poisonDamage;
+      this.pushLog(`${targetName} 受到 ${poisonDamage} 点中毒伤害。`);
+    }
+    if (target.status.burn > 0) {
+      const burnDamage = target.status.burn * 2;
+      target.hp -= burnDamage;
+      this.pushLog(`${targetName} 受到 ${burnDamage} 点燃烧伤害。`);
+    }
+    if (target.status.regenerate > 0 && target.hp > 0) {
+      const healAmount = target.status.regenerate * 2;
+      target.hp = Math.min(target.maxHp, target.hp + healAmount);
+      this.pushLog(`${targetName} 因再生恢复 ${healAmount} 点生命。`);
+    }
+  }
+
   playCard(handIndex) {
     const card = this.hand[handIndex];
-    if (!card || card.cost > this.player.energy) return false;
+    if (!card || card.cost > this.player.energy || this.player.status.sealed > 0) return false;
     this.player.energy -= card.cost;
     if (card.damage) {
       this.dealDamage(this.player, this.enemy, card.damage, card.name);
     }
     if (card.block) {
-      this.player.block += card.block;
-      this.pushLog(`${card.name} 提供 ${card.block} 点格挡。`);
+      const blockAmount = card.block + (this.player.dexterity || 0) + (this.player.status.dexterity || 0) * (2 + (this.player.status.focus || 0));
+      this.player.block += blockAmount;
+      this.pushLog(`${card.name} 提供 ${blockAmount} 点格挡。`);
     }
     if (card.draw) {
       this.draw(card.draw);
@@ -264,6 +363,12 @@ export class BattleState {
       const target = card.applyStatus.target === 'self' ? this.player : this.enemy;
       this.applyStatus(target, card.applyStatus.id, card.applyStatus.stacks);
     }
+    if (Array.isArray(card.applyStatuses)) {
+      card.applyStatuses.forEach((entry) => {
+        const target = entry.target === 'self' ? this.player : this.enemy;
+        this.applyStatus(target, entry.id, entry.stacks);
+      });
+    }
     const [usedCard] = this.hand.splice(handIndex, 1);
     this.discardPile.push(usedCard);
     return true;
@@ -272,6 +377,8 @@ export class BattleState {
   endPlayerTurn() {
     this.discardPile.push(...this.hand.splice(0, this.hand.length));
     const playedEnemyCards = this.enemyAct();
+    this.resolveEndOfTurnStatus(this.player, '玩家');
+    this.resolveEndOfTurnStatus(this.enemy, this.enemy.name);
     this.decayStatus(this.player.status);
     this.decayStatus(this.enemy.status);
     if (this.enemy.hp <= 0 && this.rewardCards.length === 0) {
@@ -300,7 +407,11 @@ export class BattleState {
       const damage = enemyCard.damage ?? (enemyCard.type === 'attack' ? enemyCard.value : 0);
       const block = enemyCard.block ?? (enemyCard.type === 'block' ? enemyCard.value : 0);
       if (damage > 0) {
-        this.dealDamage(this.enemy, this.player, damage, `${this.enemy.name} 的 ${enemyCard.name}`);
+        const dealt = this.dealDamage(this.enemy, this.player, damage, `${this.enemy.name} 的 ${enemyCard.name}`);
+        if (enemyCard.lifesteal && dealt > 0) {
+          this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + dealt);
+          this.pushLog(`${this.enemy.name} 吸取了 ${dealt} 点生命。`);
+        }
       }
       if (block > 0) {
         this.enemy.block += block;
@@ -309,6 +420,24 @@ export class BattleState {
       if (enemyCard.applyStatus) {
         const target = enemyCard.applyStatus.target === 'self' ? this.enemy : this.player;
         this.applyStatus(target, enemyCard.applyStatus.id, enemyCard.applyStatus.stacks);
+      }
+      if (Array.isArray(enemyCard.applyStatuses)) {
+        enemyCard.applyStatuses.forEach((entry) => {
+          const target = entry.target === 'self' ? this.enemy : this.player;
+          this.applyStatus(target, entry.id, entry.stacks);
+        });
+      }
+      if (enemyCard.cost?.hp) {
+        this.enemy.hp = Math.max(1, this.enemy.hp - enemyCard.cost.hp);
+        this.pushLog(`${this.enemy.name} 为发动 ${enemyCard.name} 失去 ${enemyCard.cost.hp} 点生命。`);
+      }
+      if (enemyCard.heal) {
+        const healAmount = enemyCard.heal <= 1 ? Math.ceil(this.enemy.maxHp * enemyCard.heal) : enemyCard.heal;
+        this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + healAmount);
+        this.pushLog(`${this.enemy.name} 因 ${enemyCard.name} 恢复 ${healAmount} 点生命。`);
+      }
+      if (enemyCard.oncePerBattle) {
+        this.enemyUsedOnceCards.add(enemyCard.id);
       }
       this.enemyDiscardPile.push(enemyCard);
       playedCards.push(enemyCard);
@@ -333,6 +462,10 @@ export class BattleState {
       if (this.rewardCards.length === 0) {
         this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount, this.isElite || this.isBoss);
       }
+      if (this.rewardRelics.length === 0 && (this.isElite || this.isBoss)) {
+        const ownedRelicIds = this.mapProgress?.relicIds || [];
+        this.rewardRelics = this.registry.getRelicChoices(this.isBoss ? 2 : 1, ownedRelicIds);
+      }
       const nextProgress = this.mapProgress
         ? {
             ...this.mapProgress,
@@ -341,6 +474,8 @@ export class BattleState {
             gold: (this.mapProgress.gold || 0) + this.goldReward,
             clearedNodes: [...new Set([...(this.mapProgress.clearedNodes || []), this.currentNodeId])],
             bonusCards: [...(this.mapProgress.bonusCards || [])],
+            nextBattleBuffs: {},
+            nextBattleModifiers: {},
             storySeen: [...(this.mapProgress.storySeen || [])],
             currentStoryStep: this.mapProgress.currentStoryStep || null,
           }
@@ -349,6 +484,13 @@ export class BattleState {
         type: 'reward',
         progress: nextProgress,
         rewardCards: this.rewardCards,
+        rewardRelics: this.rewardRelics,
+        rewardSummary: {
+          goldReward: this.goldReward,
+          relicCount: this.rewardRelics.length,
+          isElite: this.isElite,
+          isBoss: this.isBoss,
+        },
       };
     }
     if (this.getResult() === 'lose') {

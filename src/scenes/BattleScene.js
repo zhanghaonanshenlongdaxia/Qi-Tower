@@ -152,20 +152,39 @@ export class BattleScene extends Phaser.Scene {
     this.clearContainer(this.playerPanel);
     const p = this.state.player;
     const relics = this.state.relics || [];
-    const panelH = 178 + (relics.length > 0 ? 46 : 0);
+    const hasTempBuffs = (p.strength || 0) > 0 || (p.dexterity || 0) > 0;
+    const panelH = 178 + (hasTempBuffs ? 24 : 0) + (relics.length > 0 ? 46 : 0);
     const bg = this.add.image(0, 0, 'ui_panel').setOrigin(0, 0).setDisplaySize(286, panelH);
     const title = this.add.text(18, 14, '玩家', { fontSize: '22px', color: '#f4ead7', fontStyle: 'bold', stroke: '#2a0e04', strokeThickness: 3 });
     const hp = this.add.text(18, 54, `生命：${Math.max(0, p.hp)} / ${p.maxHp}`, { fontSize: '17px', color: '#cc4444', fontStyle: 'bold' });
     const block = this.add.text(18, 82, `格挡：${p.block}`, { fontSize: '17px', color: '#8a6020', fontStyle: 'bold' });
     const energy = this.add.text(18, 110, `灵力：${p.energy}`, { fontSize: '17px', color: '#c8840a', fontStyle: 'bold' });
-    const status = this.add.text(18, 136, `状态: 护体 ${p.status.shielding} / 虚弱 ${p.status.weak} / 易伤 ${p.status.vulnerable}`, { fontSize: '12px', color: '#7a5a30', wordWrap: { width: 236 }, lineSpacing: 2 });
+    const playerStatusParts = [
+      `护体 ${p.status.shielding}`,
+      `虚弱 ${p.status.weak}`,
+      `易伤 ${p.status.vulnerable}`,
+    ];
+    if (p.status.poison > 0) playerStatusParts.push(`中毒 ${p.status.poison}`);
+    if (p.status.burn > 0) playerStatusParts.push(`燃烧 ${p.status.burn}`);
+    if (p.status.dexterity > 0) playerStatusParts.push(`敏捷 ${p.status.dexterity}`);
+    if (p.status.focus > 0) playerStatusParts.push(`集中 ${p.status.focus}`);
+    if (p.status.sealed > 0) playerStatusParts.push(`封印 ${p.status.sealed}`);
+    if (p.status.stun > 0) playerStatusParts.push(`眩晕 ${p.status.stun}`);
+    const status = this.add.text(18, 136, `状态: ${playerStatusParts.join(' / ')}`, { fontSize: '12px', color: '#7a5a30', wordWrap: { width: 236 }, lineSpacing: 2 });
     this.playerPanel.add([bg, title, hp, block, energy, status]);
+    if (hasTempBuffs) {
+      const buffText = this.add.text(18, 158, `战前感悟: 力量 ${p.strength || 0} / 敏捷 ${p.dexterity || 0}`, {
+        fontSize: '12px', color: '#c8a050', fontStyle: 'bold', wordWrap: { width: 236 },
+      });
+      this.playerPanel.add(buffText);
+    }
     if (relics.length > 0) {
-      const relicLabel = this.add.text(18, 162, '遗物：', { fontSize: '12px', color: '#c8a050', fontStyle: 'bold' });
+      const relicBaseY = hasTempBuffs ? 186 : 162;
+      const relicLabel = this.add.text(18, relicBaseY, '遗物：', { fontSize: '12px', color: '#c8a050', fontStyle: 'bold' });
       this.playerPanel.add(relicLabel);
       relics.forEach((relic, i) => {
         const rx = 66 + i * 46;
-        const ry = 160;
+        const ry = hasTempBuffs ? 184 : 160;
         const badge = this.add.rectangle(rx, ry, 40, 22, 0x5a3614, 1).setOrigin(0, 0).setStrokeStyle(1, 0xd9a441, 0.55).setInteractive({ useHandCursor: false });
         const badgeTxt = this.add.text(rx + 20, ry + 11, relic.name.slice(0, 3), {
           fontSize: '10px', color: '#f0d060', fontStyle: 'bold',
@@ -203,7 +222,8 @@ export class BattleScene extends Phaser.Scene {
     const e = this.state.enemy;
     const enemyPreviewCards = this.state.getEnemyPreviewCards();
     const enraged = this.state.isEnraged();
-    const panelH = 188 + (enraged ? 22 : 0);
+    const hasBonusLabel = !!e.bonusLabel;
+    const panelH = 188 + (enraged ? 22 : 0) + (hasBonusLabel ? 22 : 0);
     const bg = this.add.image(0, 0, 'ui_panel').setOrigin(0, 0).setDisplaySize(286, panelH);
     const title = this.add.text(18, 14, e.name, { fontSize: '22px', color: '#f4ead7', fontStyle: 'bold', stroke: '#2a0e04', strokeThickness: 3 });
     const hp = this.add.text(18, 54, `生命：${Math.max(0, e.hp)} / ${e.maxHp}`, { fontSize: '17px', color: '#cc4444', fontStyle: 'bold' });
@@ -231,10 +251,26 @@ export class BattleScene extends Phaser.Scene {
       fontSize: '13px', color: intentColor, fontStyle: 'bold',
       wordWrap: { width: 250 }, stroke: '#1a0c04', strokeThickness: 2,
     });
-    const status = this.add.text(18, 148, `状态: 虚弱 ${e.status.weak} / 易伤 ${e.status.vulnerable}`, { fontSize: '12px', color: '#7a5a30', wordWrap: { width: 236 }, lineSpacing: 2 });
+    const enemyStatusParts = [
+      `虚弱 ${e.status.weak}`,
+      `易伤 ${e.status.vulnerable}`,
+    ];
+    if (e.status.strength > 0) enemyStatusParts.push(`力量 ${e.status.strength}`);
+    if (e.status.dexterity > 0) enemyStatusParts.push(`敏捷 ${e.status.dexterity}`);
+    if (e.status.regenerate > 0) enemyStatusParts.push(`再生 ${e.status.regenerate}`);
+    if (e.status.focus > 0) enemyStatusParts.push(`集中 ${e.status.focus}`);
+    if (e.status.poison > 0) enemyStatusParts.push(`中毒 ${e.status.poison}`);
+    const status = this.add.text(18, 148, `状态: ${enemyStatusParts.join(' / ')}`, { fontSize: '12px', color: '#7a5a30', wordWrap: { width: 236 }, lineSpacing: 2 });
     this.enemyPanel.add([bg, title, hp, block, intentText, status]);
+    if (hasBonusLabel) {
+      const bonusBadge = this.add.text(18, 170, `异变: ${e.bonusLabel}（强化敌方）`, {
+        fontSize: '12px', color: '#ffb347', fontStyle: 'bold', stroke: '#1a0c04', strokeThickness: 2,
+      });
+      this.enemyPanel.add(bonusBadge);
+    }
     if (enraged) {
-      const enrageBadge = this.add.text(18, 170, '⚠ 暴怒！出牌数 +1', { fontSize: '12px', color: '#ff4020', fontStyle: 'bold', stroke: '#1a0c04', strokeThickness: 2 });
+      const enrageY = hasBonusLabel ? 192 : 170;
+      const enrageBadge = this.add.text(18, enrageY, '⚠ 暴怒！出牌数 +1', { fontSize: '12px', color: '#ff4020', fontStyle: 'bold', stroke: '#1a0c04', strokeThickness: 2 });
       this.enemyPanel.add(enrageBadge);
     }
   }
@@ -291,8 +327,19 @@ export class BattleScene extends Phaser.Scene {
       const title = this.add.text(x + 10, 14, card.name, { fontSize: '15px', color: '#4a2d18', fontStyle: 'bold', wordWrap: { width: 100 }, maxLines: 2 });
       const cost = this.add.text(x + 10, 44, `耗能 ${card.cost}`, { fontSize: '11px', color: '#8d5a18' });
       const type = this.add.text(x + 10, 62, `类型 ${card.type}`, { fontSize: '11px', color: '#6a4d24' });
-      const desc = this.add.text(x + 10, 86, card.description, { fontSize: '11px', color: '#5a4024', wordWrap: { width: 100 }, lineSpacing: 1, maxLines: 5 });
-      const rarity = this.add.text(x + 10, 158, String(card.rarity).toUpperCase(), { fontSize: '10px', color: '#7b5f27', fontStyle: 'bold' });
+      const effectParts = [];
+      if (card.damage) effectParts.push(`伤害 ${card.damage}`);
+      if (card.block) effectParts.push(`格挡 ${card.block}`);
+      if (card.draw) effectParts.push(`抽牌 ${card.draw}`);
+      if (card.applyStatus) effectParts.push(`${card.applyStatus.id} ${card.applyStatus.stacks}`);
+      if (Array.isArray(card.applyStatuses)) {
+        card.applyStatuses.forEach(entry => effectParts.push(`${entry.id} ${entry.stacks}`));
+      }
+      const effectSummary = this.add.text(x + 10, 78, effectParts.join(' · '), {
+        fontSize: '10px', color: '#8b5c24', fontStyle: 'bold', wordWrap: { width: 100 }, maxLines: 2,
+      });
+      const desc = this.add.text(x + 10, 96, card.description, { fontSize: '10px', color: '#5a4024', wordWrap: { width: 100 }, lineSpacing: 1, maxLines: 4 });
+      const rarity = this.add.text(x + 10, 160, String(card.rarity).toUpperCase(), { fontSize: '10px', color: '#7b5f27', fontStyle: 'bold' });
       this._handCardBounds.push({
         worldX: this.handContainer.x + x,
         worldY: this.handContainer.y,
@@ -302,7 +349,7 @@ export class BattleScene extends Phaser.Scene {
         index,
       });
       if (animateFromIndex >= 0 && index >= animateFromIndex) {
-        const items = [bg, title, cost, type, desc, rarity];
+        const items = [bg, title, cost, type, effectSummary, desc, rarity];
         const startOffX = deckWorldX - (this.handContainer.x + x + 63);
         const startOffY = deckWorldY - this.handContainer.y - 94;
         items.forEach(item => {
@@ -322,7 +369,7 @@ export class BattleScene extends Phaser.Scene {
           });
         });
       }
-      this.handContainer.add([bg, title, cost, type, desc, rarity]);
+      this.handContainer.add([bg, title, cost, type, effectSummary, desc, rarity]);
     });
   }
 
@@ -641,6 +688,8 @@ export class BattleScene extends Phaser.Scene {
           this.scene.start('RewardScene', {
             progress: outcome.progress,
             rewardCards: outcome.rewardCards,
+            rewardRelics: outcome.rewardRelics,
+            rewardSummary: outcome.rewardSummary,
           });
         });
         return;
@@ -650,6 +699,8 @@ export class BattleScene extends Phaser.Scene {
       this.scene.start('RewardScene', {
         progress: outcome.progress,
         rewardCards: outcome.rewardCards,
+        rewardRelics: outcome.rewardRelics,
+        rewardSummary: outcome.rewardSummary,
       });
       return;
     }

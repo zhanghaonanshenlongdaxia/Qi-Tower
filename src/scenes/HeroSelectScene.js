@@ -49,6 +49,17 @@ export class HeroSelectScene extends Phaser.Scene {
       });
       this._routeButtons.push({ route, btn, txt });
     });
+
+    this.add.image(width / 2, 226, 'ui_panel').setDisplaySize(760, 56).setAlpha(0.92);
+    this._routeInfoTitle = this.add.text(width / 2, 214, '', {
+      fontSize: '15px', color: '#f4ead7', fontStyle: 'bold',
+      stroke: '#2a0e04', strokeThickness: 3,
+    }).setOrigin(0.5);
+    this._routeInfoBody = this.add.text(width / 2, 238, '', {
+      fontSize: '12px', color: '#ead8b8', align: 'center',
+      stroke: '#2a0e04', strokeThickness: 2,
+    }).setOrigin(0.5);
+
     this._refreshRouteSelection();
 
     const cardW = 290;
@@ -173,6 +184,18 @@ export class HeroSelectScene extends Phaser.Scene {
         txt.setColor('#ead5ad');
       }
     });
+
+    const route = MAP_ROUTE_LIBRARY.find(item => item.id === this._selectedRouteId);
+    if (route) {
+      const counts = route.nodes.reduce((acc, node) => {
+        acc[node.type] = (acc[node.type] || 0) + 1;
+        return acc;
+      }, {});
+      this._routeInfoTitle?.setText(`路线概览：${route.name}`);
+      this._routeInfoBody?.setText(
+        `战斗 ${counts.battle || 0} · 事件 ${counts.event || 0} · 商店 ${counts.shop || 0} · 休整 ${counts.rest || 0} · 精英 ${counts.elite || 0} · Boss ${counts.boss || 0}`
+      );
+    }
   }
 
   _startWithHero(hero) {
@@ -192,6 +215,7 @@ export class HeroSelectScene extends Phaser.Scene {
       routeId: this._selectedRouteId,
       clearedNodes: [],
       bonusCards: [],
+      removedCardIds: [],
       storySeen: [],
       currentStoryStep: null,
       heroId: hero.id,
