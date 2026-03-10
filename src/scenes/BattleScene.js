@@ -18,6 +18,9 @@ export class BattleScene extends Phaser.Scene {
     this.createLayout();
     this.input.on('pointerdown', (pointer) => this._onHandPointerDown(pointer));
     this.render(0);
+    if (this.state.isBoss) {
+      this.showBossIntroSequence();
+    }
   }
 
   createLayout() {
@@ -58,15 +61,20 @@ export class BattleScene extends Phaser.Scene {
     this.add.image(44, 52, 'avatar_player').setScale(0.54);
     this.add.image(width - 44, 52, 'avatar_enemy').setScale(0.54);
 
-    const titleLabel = this.state.isElite ? '精英对决' : '对决';
-    const titleColor = this.state.isElite ? '#ff9040' : '#f4ead7';
+    const titleLabel = this.state.isBoss ? 'Boss 对决' : this.state.isElite ? '精英对决' : '对决';
+    const titleColor = this.state.isBoss ? '#ff5f5f' : this.state.isElite ? '#ff9040' : '#f4ead7';
     this.add.text(width / 2, 58, titleLabel, {
       fontSize: '32px',
       color: titleColor,
       fontStyle: 'bold',
       stroke: '#2a0e04', strokeThickness: 4,
     }).setOrigin(0.5);
-    if (this.state.isElite) {
+    if (this.state.isBoss) {
+      this.add.text(width / 2, 88, '☠ 塔前 Boss 战 · 高压终局 ☠', {
+        fontSize: '13px', color: '#ff7a7a', fontStyle: 'bold',
+        stroke: '#2a0e04', strokeThickness: 3,
+      }).setOrigin(0.5);
+    } else if (this.state.isElite) {
       this.add.text(width / 2, 88, '★ 精英战斗 · 必得稀有奖励 ★', {
         fontSize: '13px', color: '#ff9040', fontStyle: 'bold',
         stroke: '#2a0e04', strokeThickness: 3,
@@ -626,6 +634,17 @@ export class BattleScene extends Phaser.Scene {
     const outcome = this.state.getSceneOutcome();
     if (!outcome) return;
     if (outcome.type === 'reward') {
+      if (this.state.isBoss) {
+        this.showBossVictorySequence(() => {
+          this.sfx?.resume();
+          this.sfx?.playReward();
+          this.scene.start('RewardScene', {
+            progress: outcome.progress,
+            rewardCards: outcome.rewardCards,
+          });
+        });
+        return;
+      }
       this.sfx?.resume();
       this.sfx?.playReward();
       this.scene.start('RewardScene', {
@@ -637,5 +656,80 @@ export class BattleScene extends Phaser.Scene {
     this.sfx?.resume();
     this.sfx?.playDefeat();
     this.scene.start('MenuScene');
+  }
+
+  showBossIntroSequence() {
+    const { width, height } = this.scale;
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x120304, 0.88).setDepth(200);
+    const title = this.add.text(width / 2, height / 2 - 28, '塔心魇主现身', {
+      fontSize: '38px',
+      color: '#ff7b7b',
+      fontStyle: 'bold',
+      stroke: '#2a0e04', strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(201);
+    const body = this.add.text(width / 2, height / 2 + 28, '镇妖塔心开始回响。所有迟疑、怯意与执念都将被它化作魇火。', {
+      fontSize: '18px',
+      color: '#f5d7ca',
+      align: 'center',
+      wordWrap: { width: 620 },
+      lineSpacing: 8,
+      stroke: '#2a0e04', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(201);
+    this.tweens.add({
+      targets: [overlay, title, body],
+      alpha: { from: 0, to: 1 },
+      duration: 280,
+      onComplete: () => {
+        this.time.delayedCall(1400, () => {
+          this.tweens.add({
+            targets: [overlay, title, body],
+            alpha: 0,
+            duration: 320,
+            onComplete: () => {
+              overlay.destroy();
+              title.destroy();
+              body.destroy();
+            },
+          });
+        });
+      },
+    });
+  }
+
+  showBossVictorySequence(onComplete) {
+    const { width, height } = this.scale;
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x110705, 0.9).setDepth(220);
+    const title = this.add.text(width / 2, height / 2 - 32, '塔心沉寂', {
+      fontSize: '40px',
+      color: '#ffd27a',
+      fontStyle: 'bold',
+      stroke: '#2a0e04', strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(221);
+    const body = this.add.text(width / 2, height / 2 + 26, '魇火开始熄灭，塔内哀鸣暂时止息。你赢下的不是终局，而是进入真相的资格。', {
+      fontSize: '18px',
+      color: '#f5e2bf',
+      align: 'center',
+      wordWrap: { width: 640 },
+      lineSpacing: 8,
+      stroke: '#2a0e04', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(221);
+    this.tweens.add({
+      targets: [overlay, title, body],
+      alpha: { from: 0, to: 1 },
+      duration: 280,
+    });
+    this.time.delayedCall(1550, () => {
+      this.tweens.add({
+        targets: [overlay, title, body],
+        alpha: 0,
+        duration: 320,
+        onComplete: () => {
+          overlay.destroy();
+          title.destroy();
+          body.destroy();
+          onComplete?.();
+        },
+      });
+    });
   }
 }

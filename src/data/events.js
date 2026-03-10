@@ -358,6 +358,117 @@ export const EVENT_LIBRARY = [
         cost: null
       }
     ]
+  },
+
+  {
+    id: 'abandoned_satchel',
+    name: '遗落行囊',
+    icon: '🎒',
+    description: '路边有只沾满泥水的旧行囊，里面似乎还有些尚未被翻走的东西。',
+    options: [
+      {
+        id: 'search',
+        text: '翻找行囊（获得 25~55 灵石）',
+        effect: 'get_gold',
+        goldRange: [25, 55],
+        cost: null
+      },
+      {
+        id: 'leave',
+        text: '不多停留',
+        effect: 'leave',
+        cost: null
+      }
+    ]
+  },
+
+  {
+    id: 'meditation_stone',
+    name: '悟道石',
+    icon: '🪨',
+    description: '一块被打磨得异常平整的青石静立林间，石面上残留着前人闭关时留下的手印。',
+    options: [
+      {
+        id: 'meditate',
+        text: '打坐参悟（从 3 张牌中获得 1 张）',
+        effect: 'choose_card',
+        cardCount: 3,
+        cost: null
+      },
+      {
+        id: 'rest',
+        text: '静息片刻（恢复 30% 最大生命）',
+        effect: 'heal_percent',
+        value: 0.3,
+        cost: null
+      },
+      {
+        id: 'leave',
+        text: '继续上路',
+        effect: 'leave',
+        cost: null
+      }
+    ]
+  },
+
+  {
+    id: 'sealed_altar',
+    name: '封印供台',
+    icon: '🕯️',
+    description: '供台上的符火忽明忽暗，像是在等待后来者重新做出抉择。',
+    options: [
+      {
+        id: 'offer',
+        text: '献上心念（50% 获得 50 灵石，50% 失去 10 点生命）',
+        effect: 'gamble_gold',
+        chance: 0.5,
+        success: { gold: 50 },
+        failure: { hp: -10 }
+      },
+      {
+        id: 'pray',
+        text: '默念古咒（50% 获得力量启示，50% 失去 3 点生命）',
+        effect: 'gamble_strength',
+        chance: 0.5,
+        success: { strength: 3 },
+        failure: { hp: -3 }
+      },
+      {
+        id: 'leave',
+        text: '无意打扰',
+        effect: 'leave',
+        cost: null
+      }
+    ]
+  },
+
+  {
+    id: 'wandering_dojo',
+    name: '流云武馆',
+    icon: '🥢',
+    description: '一座临时搭起的小武馆隐在山道旁，馆主愿意指点你一招半式。',
+    options: [
+      {
+        id: 'learn',
+        text: '请教武艺（升级感悟，当前以提示代替）',
+        effect: 'free_upgrade',
+        cardCount: 3,
+        cost: null
+      },
+      {
+        id: 'rest',
+        text: '借地调息（恢复 30% 最大生命）',
+        effect: 'heal_percent',
+        value: 0.3,
+        cost: null
+      },
+      {
+        id: 'leave',
+        text: '拱手告辞',
+        effect: 'leave',
+        cost: null
+      }
+    ]
   }
 ];
 

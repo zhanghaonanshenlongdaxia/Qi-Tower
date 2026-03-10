@@ -43,6 +43,7 @@ export class BattleState {
     this.rewardCount = options.rewardCount || 3;
     this.goldReward = options.goldReward || 0;
     this.isElite = options.isElite || false;
+    this.isBoss = options.isBoss || false;
     const startingMaxHp = options.mapProgress?.maxHp || 50;
     const startingHp = options.mapProgress?.playerHp || startingMaxHp;
     this.player = {
@@ -274,7 +275,7 @@ export class BattleState {
     this.decayStatus(this.player.status);
     this.decayStatus(this.enemy.status);
     if (this.enemy.hp <= 0 && this.rewardCards.length === 0) {
-      this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount, this.isElite);
+      this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount, this.isElite || this.isBoss);
     }
     return playedEnemyCards;
   }
@@ -330,7 +331,7 @@ export class BattleState {
   getSceneOutcome() {
     if (this.getResult() === 'win') {
       if (this.rewardCards.length === 0) {
-        this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount, this.isElite);
+        this.rewardCards = this.registry.getRewardCardChoices(this.rewardCount, this.isElite || this.isBoss);
       }
       const nextProgress = this.mapProgress
         ? {
@@ -340,6 +341,8 @@ export class BattleState {
             gold: (this.mapProgress.gold || 0) + this.goldReward,
             clearedNodes: [...new Set([...(this.mapProgress.clearedNodes || []), this.currentNodeId])],
             bonusCards: [...(this.mapProgress.bonusCards || [])],
+            storySeen: [...(this.mapProgress.storySeen || [])],
+            currentStoryStep: this.mapProgress.currentStoryStep || null,
           }
         : null;
       return {

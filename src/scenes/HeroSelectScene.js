@@ -1,4 +1,5 @@
 import { HERO_LIBRARY } from '../data/heroes';
+import { MAP_ROUTE_LIBRARY } from '../data/mapNodes';
 
 export class HeroSelectScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +9,7 @@ export class HeroSelectScene extends Phaser.Scene {
   create() {
     this.sfx = this.registry.get('sfxManager');
     this.dataRegistry = this.registry.get('dataRegistry');
+    this._selectedRouteId = MAP_ROUTE_LIBRARY[0]?.id || 'trial_route_alpha';
 
     const { width, height } = this.scale;
     this._selectedHero = null;
@@ -27,6 +29,27 @@ export class HeroSelectScene extends Phaser.Scene {
       fontSize: '15px', color: '#f4ead7',
       stroke: '#2a0e04', strokeThickness: 3,
     }).setOrigin(0.5);
+
+    this.add.text(width / 2, 138, '路线选择', {
+      fontSize: '17px', color: '#f4ead7', fontStyle: 'bold',
+      stroke: '#2a0e04', strokeThickness: 3,
+    }).setOrigin(0.5);
+    this._routeButtons = [];
+    MAP_ROUTE_LIBRARY.forEach((route, index) => {
+      const btn = this.add.image(width / 2 + (index - (MAP_ROUTE_LIBRARY.length - 1) / 2) * 220, 176, 'ui_panel').setDisplaySize(200, 42).setInteractive({ useHandCursor: true });
+      const txt = this.add.text(btn.x, btn.y, route.name, {
+        fontSize: '15px', color: '#ead5ad', fontStyle: 'bold',
+        stroke: '#2a0e04', strokeThickness: 3,
+      }).setOrigin(0.5);
+      btn.on('pointerdown', () => {
+        this.sfx?.resume();
+        this.sfx?.playNodeSelect();
+        this._selectedRouteId = route.id;
+        this._refreshRouteSelection();
+      });
+      this._routeButtons.push({ route, btn, txt });
+    });
+    this._refreshRouteSelection();
 
     const cardW = 290;
     const cardH = 400;
@@ -139,6 +162,19 @@ export class HeroSelectScene extends Phaser.Scene {
     this._confirmBtn.on('pointerdown', () => this._startWithHero(hero));
   }
 
+  _refreshRouteSelection() {
+    this._routeButtons?.forEach(({ route, btn, txt }) => {
+      const active = route.id === this._selectedRouteId;
+      if (active) {
+        btn.setTint(0xffd060);
+        txt.setColor('#fff2b2');
+      } else {
+        btn.clearTint();
+        txt.setColor('#ead5ad');
+      }
+    });
+  }
+
   _startWithHero(hero) {
     this.sfx?.resume();
     this.sfx?.playVictory();
@@ -153,9 +189,11 @@ export class HeroSelectScene extends Phaser.Scene {
       playerHp: hero.maxHp,
       gold: hero.startGold,
       relicIds: hero.startRelics,
-      routeId: 'trial_route_alpha',
+      routeId: this._selectedRouteId,
       clearedNodes: [],
       bonusCards: [],
+      storySeen: [],
+      currentStoryStep: null,
       heroId: hero.id,
     };
 

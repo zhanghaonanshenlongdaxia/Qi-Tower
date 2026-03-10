@@ -1,4 +1,5 @@
 import { EVENT_LIBRARY } from '../data/events';
+import { getStoryStep } from '../data/story';
 import { UIHelper } from '../utils/UIHelper';
 
 export class MapScene extends Phaser.Scene {
@@ -16,6 +17,8 @@ export class MapScene extends Phaser.Scene {
       routeId: 'trial_route_alpha',
       clearedNodes: [],
       bonusCards: [],
+      storySeen: [],
+      currentStoryStep: null,
     };
     this.sfx = this.registry.get('sfxManager');
 
@@ -50,7 +53,7 @@ export class MapScene extends Phaser.Scene {
       width: 560,
       height: 48,
       background: this.add.rectangle(0, 0, 560, 48, 0x4b311d, 0.72).setStrokeStyle(1, 0xc89b3c, 0.34),
-      text: this.add.text(0, 0, '选择下一个节点进入战斗。每个节点胜利后都可以进行奖励选牌。', {
+      text: this.add.text(0, 0, '选择下一个节点推进路线。现在支持分岔与汇合，满足前置节点即可解锁后续道路。', {
         fontSize: '16px',
         color: '#f2dfbc',
       }),
@@ -60,7 +63,7 @@ export class MapScene extends Phaser.Scene {
     const viewportX = 132;
     const viewportY = 286;
     const viewportWidth = width - 264;
-    const viewportHeight = 210;
+    const viewportHeight = 250;
     this.nodeViewportBounds = new Phaser.Geom.Rectangle(viewportX, viewportY, viewportWidth, viewportHeight);
     const viewportMaskShape = this.make.graphics({ add: false });
     viewportMaskShape.fillRect(viewportX, viewportY, viewportWidth, viewportHeight);
@@ -73,18 +76,40 @@ export class MapScene extends Phaser.Scene {
     this.nodeDragStartX = 0;
     this.nodeDragStartContainerX = 0;
 
-    const lineY = 392;
     const contentWidth = Math.max(viewportWidth - 48, this.route.nodes.length * 220 + (this.route.nodes.length - 1) * 58);
     this.nodeScrollMinX = viewportX + 24 - Math.max(0, contentWidth - (viewportWidth - 48));
     this.nodeScrollMaxX = viewportX + 24;
-    this.nodeContainer.add(this.add.rectangle(contentWidth / 2, lineY, contentWidth, 4, 0x7b5a2f, 0.4).setStrokeStyle(1, 0xd9a441, 0.28));
-
     const segment = this.route.nodes.length > 1 ? (contentWidth - 220) / (this.route.nodes.length - 1) : 0;
+    const laneYMap = {
+      top: 338,
+      mid: 392,
+      bottom: 446,
+    };
+    const nodePositions = new Map();
+
     this.route.nodes.forEach((node, index) => {
       const x = 110 + index * segment;
-      const y = 404;
+      const y = laneYMap[node.lane] || laneYMap.mid;
+      nodePositions.set(node.id, { x, y, node, index });
+    });
+
+    this.route.nodes.forEach((node, index) => {
+      const { x, y } = nodePositions.get(node.id);
+      const requires = this.getNodeRequirements(node, index);
+      requires.forEach((reqId) => {
+        const from = nodePositions.get(reqId);
+        if (!from) return;
+        const line = this.add.line(0, 0, from.x + 92, from.y, x - 92, y, 0xc89b3c, 0.42)
+          .setLineWidth(3)
+          .setOrigin(0, 0);
+        this.nodeContainer.add(line);
+      });
+    });
+
+    this.route.nodes.forEach((node, index) => {
+      const { x, y } = nodePositions.get(node.id);
       const cleared = this.progress.clearedNodes.includes(node.id);
-      const available = !cleared && (index === 0 || this.progress.clearedNodes.includes(this.route.nodes[index - 1].id));
+      const available = !cleared && this.isNodeAvailable(node, index);
       const badgeColor = cleared ? '#f0d9ad' : available ? '#fff0b3' : '#94785a';
       const typeLabel = this.getNodeTypeLabel(node.type);
       const statusLabel = this.getNodeStatusLabel(cleared, available);
@@ -166,17 +191,22 @@ export class MapScene extends Phaser.Scene {
       width: 420,
       height: 42,
       background: this.add.rectangle(0, 0, 420, 42, 0x4b311d, 0.68).setStrokeStyle(1, 0xc89b3c, 0.24),
-      text: this.add.text(0, 0, '提示：先过前一个节点，后面的节点才会解锁。', {
+      text: this.add.text(0, 0, '提示：分岔节点只需满足任一前置条件，汇合节点会在任一路线完成后开启。', {
         fontSize: '16px',
         color: '#ead8b8',
       }),
       align: 'center',
     }).layout();
+
+    this.time.delayedCall(80, () => {
+      this.maybeShowPendingStory();
+    });
   }
 
   getNodeTypeLabel(type) {
     if (type === 'battle') return '战斗';
     if (type === 'elite') return '精英';
+    if (type === 'boss') return 'Boss';
     if (type === 'event') return '奇遇';
     if (type === 'rest') return '休整';
     if (type === 'shop') return '商店';
@@ -189,21 +219,38 @@ export class MapScene extends Phaser.Scene {
     return '未解锁';
   }
 
+  getNodeRequirements(node, index) {
+    if (Array.isArray(node.requires) && node.requires.length > 0) return node.requires;
+    if (index === 0) return [];
+    const previousNode = this.route.nodes[index - 1];
+    return previousNode ? [previousNode.id] : [];
+  }
+
+  isNodeAvailable(node, index) {
+    const requirements = this.getNodeRequirements(node, index);
+    if (requirements.length === 0) return true;
+    const clearedSet = new Set(this.progress.clearedNodes || []);
+    return requirements.some(reqId => clearedSet.has(reqId));
+  }
+
   setNodeScrollPosition(nextX) {
     this.nodeContainer.x = Phaser.Math.Clamp(nextX, this.nodeScrollMinX, this.nodeScrollMaxX);
   }
 
   handleNodeSelection(node) {
-    if (node.type === 'battle' || node.type === 'elite') {
+    if (node.type === 'battle' || node.type === 'elite' || node.type === 'boss') {
+      const enemyPool = Array.isArray(node.enemyPool) && node.enemyPool.length > 0 ? node.enemyPool : [node.enemyId];
+      const selectedEnemyId = enemyPool[Math.floor(Math.random() * enemyPool.length)] || node.enemyId;
       this.scene.start('BattleScene', {
         deckId: this.progress.deckId,
         relicIds: this.progress.relicIds,
-        enemyId: node.enemyId,
+        enemyId: selectedEnemyId,
         mapProgress: this.progress,
         currentNodeId: node.id,
         rewardCount: node.rewardCount || 3,
         goldReward: node.goldReward || 0,
         isElite: node.type === 'elite',
+        isBoss: node.type === 'boss',
       });
       return;
     }
@@ -216,6 +263,8 @@ export class MapScene extends Phaser.Scene {
       clearedNodes: [...new Set([...(this.progress.clearedNodes || []), node.id])],
       bonusCards: [...(this.progress.bonusCards || [])],
       relicIds: [...(this.progress.relicIds || [])],
+      storySeen: [...(this.progress.storySeen || [])],
+      currentStoryStep: this.progress.currentStoryStep || null,
     };
 
     if (node.type === 'rest') {
@@ -235,9 +284,12 @@ export class MapScene extends Phaser.Scene {
   }
 
   showEventPanel(node, nextProgress) {
-    const pool = EVENT_LIBRARY.filter(e =>
-      !['combat_training', 'bonus_combat'].includes(e.id)
-    );
+    const allowedPool = (node.eventPool && node.eventPool.length > 0)
+      ? EVENT_LIBRARY.filter(e => node.eventPool.includes(e.id))
+      : EVENT_LIBRARY.filter(e => !['combat_training', 'bonus_combat'].includes(e.id));
+    const pool = allowedPool.length > 0
+      ? allowedPool
+      : EVENT_LIBRARY.filter(e => !['combat_training', 'bonus_combat'].includes(e.id));
     const event = pool[Math.floor(Math.random() * pool.length)];
     const { width, height } = this.scale;
 
@@ -514,6 +566,123 @@ export class MapScene extends Phaser.Scene {
       body.destroy();
       button.destroy();
       this.scene.start('MapScene', { progress: nextProgress });
+    });
+  }
+
+  maybeShowPendingStory() {
+    const clearedSet = new Set(this.progress.clearedNodes || []);
+    const seenSet = new Set(this.progress.storySeen || []);
+    const pendingNode = this.route.nodes.find(node => node.storyStep && clearedSet.has(node.id) && !seenSet.has(node.storyStep));
+    if (!pendingNode) return;
+    const step = getStoryStep(pendingNode.storyStep);
+    if (!step) return;
+    this.showStoryPanel(step, pendingNode);
+  }
+
+  showStoryPanel(step, node) {
+    const { width, height } = this.scale;
+    const dramatic = ['tower_threshold', 'tower_heart', 'hall_gate'].includes(step.id);
+    const panelTint = dramatic ? 0x2a120d : 0x090503;
+    const titleColor = dramatic ? '#ffd07a' : '#f4ead7';
+    const hintColor = dramatic ? '#ffcf8e' : '#d3b47a';
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x090503, 0.86).setInteractive();
+    const glow = this.add.rectangle(width / 2, height / 2, 736, 376, panelTint, dramatic ? 0.34 : 0.18).setStrokeStyle(2, dramatic ? 0xffb35f : 0xc89b3c, dramatic ? 0.5 : 0.24);
+    const panel = this.add.image(width / 2, height / 2, 'ui_panel').setDisplaySize(720, 360);
+    const banner = this.add.image(width / 2, height / 2 - 142, 'ui_banner').setDisplaySize(660, 64);
+    const title = this.add.text(width / 2, height / 2 - 142, step.title, {
+      fontSize: '28px',
+      color: titleColor,
+      fontStyle: 'bold',
+      stroke: '#2a0e04', strokeThickness: 4,
+    }).setOrigin(0.5);
+    const fromNode = this.add.text(width / 2, height / 2 - 96, `节点：${node.name}`, {
+      fontSize: '15px',
+      color: '#dcbf87',
+      stroke: '#2a0e04', strokeThickness: 3,
+    }).setOrigin(0.5);
+    const storyViewportW = 520;
+    const storyViewportH = 96;
+    const storyViewportX = width / 2 - storyViewportW / 2;
+    const storyViewportY = height / 2 - storyViewportH / 2 - 4;
+    const storyPaddingX = 22;
+    const storyPaddingY = 14;
+    const storyMaskShape = this.make.graphics({ add: false });
+    storyMaskShape.fillRect(storyViewportX, storyViewportY, storyViewportW, storyViewportH);
+    const storyMask = storyMaskShape.createGeometryMask();
+    const storyContainer = this.add.container(0, 0);
+    const body = this.add.text(width / 2, storyViewportY + storyPaddingY, step.body, {
+      fontSize: '18px',
+      color: '#ead9bb',
+      align: 'center',
+      wordWrap: { width: storyViewportW - storyPaddingX * 2 },
+      lineSpacing: 8,
+    }).setOrigin(0.5, 0);
+    storyContainer.add(body);
+    storyContainer.setMask(storyMask);
+    const maxStoryScroll = Math.max(0, body.height - (storyViewportH - storyPaddingY * 2));
+    const storyFrame = this.add.rectangle(width / 2, storyViewportY + storyViewportH / 2, storyViewportW + 20, storyViewportH + 18, 0x2b160d, 0.08)
+      .setStrokeStyle(1, dramatic ? 0xffb35f : 0xc89b3c, 0.22);
+    const hint = this.add.text(width / 2, height / 2 + 96, `线索：${step.hint}`, {
+      fontSize: '15px',
+      color: hintColor,
+      align: 'center',
+      wordWrap: { width: 540 },
+      lineSpacing: 4,
+    }).setOrigin(0.5);
+    if (dramatic) {
+      this.tweens.add({
+        targets: [banner, glow],
+        alpha: { from: 0.82, to: 1 },
+        yoyo: true,
+        repeat: -1,
+        duration: 680,
+      });
+    }
+    const button = this.rexUI.add.label({
+      x: width / 2,
+      y: height / 2 + 146,
+      width: 220,
+      height: 50,
+      background: this.add.rectangle(0, 0, 220, 50, 0x8f5e27, 1).setStrokeStyle(1, 0xf1d59c, 0.5),
+      text: this.add.text(0, 0, '记下线索', {
+        fontSize: '21px',
+        color: '#f7ead0',
+        fontStyle: 'bold',
+      }),
+      align: 'center',
+    }).layout();
+    button.setInteractive({ useHandCursor: true });
+    const updateStoryScroll = (deltaY) => {
+      if (maxStoryScroll <= 0) return;
+      const nextY = Phaser.Math.Clamp(body.y + deltaY, storyViewportY + storyPaddingY - maxStoryScroll, storyViewportY + storyPaddingY);
+      body.y = nextY;
+    };
+    const wheelHandler = (pointer, _objects, _dx, dy) => {
+      if (!Phaser.Geom.Rectangle.Contains(new Phaser.Geom.Rectangle(storyViewportX, storyViewportY, storyViewportW, storyViewportH), pointer.x, pointer.y)) return;
+      updateStoryScroll(-dy * 0.35);
+    };
+    const pointerHandler = (pointer) => {
+      if (!Phaser.Geom.Rectangle.Contains(new Phaser.Geom.Rectangle(storyViewportX, storyViewportY, storyViewportW, storyViewportH), pointer.x, pointer.y)) return;
+      updateStoryScroll(pointer.velocity.y * 0.02);
+    };
+    this.input.on('wheel', wheelHandler);
+    this.input.on('pointermove', pointerHandler);
+    button.on('pointerdown', () => {
+      this.progress.storySeen = [...new Set([...(this.progress.storySeen || []), step.id])];
+      this.progress.currentStoryStep = step.id;
+      this.input.off('wheel', wheelHandler);
+      this.input.off('pointermove', pointerHandler);
+      overlay.destroy();
+      glow.destroy();
+      panel.destroy();
+      banner.destroy();
+      title.destroy();
+      fromNode.destroy();
+      storyFrame.destroy();
+      storyContainer.destroy();
+      body.destroy();
+      hint.destroy();
+      button.destroy();
     });
   }
 }
