@@ -309,7 +309,8 @@ export class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.enemyHandContainer.add([cardBg, marker, cardName, cardEffect]);
       } else {
-        const cardBg = this.add.image(cardX + 26, cardY + 36, 'ui_card_back').setDisplaySize(52, 68).setAlpha(0.98);
+        const cardBackKey = card.rarity === 'rare' ? 'card_back_rare' : (card.rarity === 'uncommon' ? 'card_back_uncommon' : 'card_back_common');
+        const cardBg = this.add.image(cardX + 26, cardY + 36, cardBackKey).setDisplaySize(52, 68).setAlpha(0.98);
         cardBg.setAngle(index % 2 === 0 ? -4 : 4);
         this.enemyHandContainer.add(cardBg);
       }
@@ -323,7 +324,8 @@ export class BattleScene extends Phaser.Scene {
     const deckWorldY = this.handContainer.y + 94;
     this.state.hand.forEach((card, index) => {
       const x = index * 136;
-      const bg = this.add.image(x, 0, 'ui_card_frame').setOrigin(0, 0).setDisplaySize(126, 188);
+      const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+      const bg = this.add.image(x, 0, cardFrontKey).setOrigin(0, 0).setDisplaySize(126, 188);
       const title = this.add.text(x + 10, 14, card.name, { fontSize: '15px', color: '#4a2d18', fontStyle: 'bold', wordWrap: { width: 100 }, maxLines: 2 });
       const cost = this.add.text(x + 10, 44, `耗能 ${card.cost}`, { fontSize: '11px', color: '#8d5a18' });
       const type = this.add.text(x + 10, 62, `类型 ${card.type}`, { fontSize: '11px', color: '#6a4d24' });
@@ -420,7 +422,8 @@ export class BattleScene extends Phaser.Scene {
     const midX = (startX + this.playZone.x) * 0.5;
     const midY = Math.min(startY, this.playZone.y) - 30;
     const preview = this.add.container(midX, midY);
-    const bg = this.add.image(0, 0, 'ui_card_frame').setDisplaySize(118, 172);
+    const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+    const bg = this.add.image(0, 0, cardFrontKey).setDisplaySize(118, 172);
     const title = this.add.text(0, -52, card.name, {
       fontSize: '16px',
       color: '#4a2d18',
@@ -461,7 +464,8 @@ export class BattleScene extends Phaser.Scene {
 
   animateEnemyCard(card, startX, startY) {
     const preview = this.add.container(startX, startY);
-    const bg = this.add.image(0, 0, 'ui_card_frame').setDisplaySize(112, 162);
+    const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+    const bg = this.add.image(0, 0, cardFrontKey).setDisplaySize(112, 162);
     const title = this.add.text(0, -48, card.name, {
       fontSize: '15px',
       color: '#4a2d18',
@@ -516,7 +520,8 @@ export class BattleScene extends Phaser.Scene {
       ? Phaser.Math.Between(-6, 10)
       : Phaser.Math.Between(-10, 6);
     const container = this.add.container(x, y);
-    const bg = this.add.image(0, 0, 'ui_card_frame').setDisplaySize(88, 128);
+    const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+    const bg = this.add.image(0, 0, cardFrontKey).setDisplaySize(88, 128);
     const title = this.add.text(0, -36, card.name, {
       fontSize: '12px',
       color: '#4a2d18',
@@ -541,8 +546,8 @@ export class BattleScene extends Phaser.Scene {
     container.setAngle(angle);
     container.setScale(0.72);
     this.tableCardLayer.add(container);
-    this.tableCards.push({ container, bg, title, desc, badge, facedown: false, source: card.source });
-    this.currentTurnCards.push({ container, bg, title, desc, badge, source: card.source });
+    this.tableCards.push({ container, bg, title, desc, badge, facedown: false, source: card.source, rarity: card.rarity });
+    this.currentTurnCards.push({ container, bg, title, desc, badge, source: card.source, rarity: card.rarity });
     this.tableCards.slice(0, settledIndex).forEach((entry, index) => {
       entry.container.x = this.playZone.x - 112 + (index % 5) * 18;
       entry.container.y = this.playZone.y + 2 + Math.floor(index / 5) * 8;
@@ -562,7 +567,9 @@ export class BattleScene extends Phaser.Scene {
           scaleX: 0.08,
           duration: 100,
           onComplete: () => {
-            entry.bg.setTexture('ui_card_back');
+            const cardBackKey = entry.rarity === 'rare' ? 'card_back_rare' : (entry.rarity === 'uncommon' ? 'card_back_uncommon' : 'card_back_common');
+            entry.bg.setTexture(cardBackKey);
+            entry.bg.setDisplaySize(88, 128);
             entry.title.setVisible(false);
             entry.desc.setVisible(false);
             entry.badge.setVisible(false);

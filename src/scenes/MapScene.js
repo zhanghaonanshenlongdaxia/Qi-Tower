@@ -777,11 +777,12 @@ export class MapScene extends Phaser.Scene {
     const finish = () => {
       disposables.forEach(item => { if (item && item.destroy) item.destroy(); });
       this.scene.start('MapScene', { progress: nextProgress });
-    };
+    }
 
     cards.forEach((card, index) => {
       const x = startX + index * (cardW + gap);
-      const bg = this.add.image(x, cardY, 'ui_card_frame').setDisplaySize(cardW, cardH).setInteractive({ useHandCursor: true });
+      const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+      const bg = this.add.image(x, cardY, cardFrontKey).setDisplaySize(cardW, cardH).setInteractive({ useHandCursor: true });
       const nameText = this.add.text(x, cardY - cardH / 2 + 22, card.name, {
         fontSize: '16px', color: '#3a1a06', fontStyle: 'bold', align: 'center', wordWrap: { width: cardW - 20 },
       }).setOrigin(0.5);
@@ -921,7 +922,8 @@ export class MapScene extends Phaser.Scene {
         const x = cardsStartX + index * (CARD_W + CARD_GAP);
         const canAfford = () => nextProgress.gold >= entry.price;
 
-        const bg = this.add.image(x, cardY, 'ui_card_frame').setDisplaySize(CARD_W, CARD_H).setInteractive({ useHandCursor: true });
+        const cardFrontKey = entry.rarity === 'rare' ? 'card_front_rare' : (entry.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+        const bg = this.add.image(x, cardY, cardFrontKey).setDisplaySize(CARD_W, CARD_H).setInteractive({ useHandCursor: true });
         const nameText = this.add.text(x, cardY - CARD_H / 2 + 18, entry.name, {
           fontSize: '14px', color: '#4a2d18', fontStyle: 'bold',
           align: 'center', wordWrap: { width: CARD_W - 20 },
@@ -1074,7 +1076,8 @@ export class MapScene extends Phaser.Scene {
 
     visibleCards.forEach((card, index) => {
       const x = startX + index * (cardW + gap);
-      const bg = this.add.image(x, cardY, 'ui_card_frame').setDisplaySize(cardW, cardH).setInteractive({ useHandCursor: true });
+      const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+      const bg = this.add.image(x, cardY, cardFrontKey).setDisplaySize(cardW, cardH).setInteractive({ useHandCursor: true });
       const nameText = this.add.text(x, cardY - cardH / 2 + 20, card.name, {
         fontSize: '15px', color: '#3a1a06', fontStyle: 'bold', align: 'center', wordWrap: { width: cardW - 18 },
       }).setOrigin(0.5);

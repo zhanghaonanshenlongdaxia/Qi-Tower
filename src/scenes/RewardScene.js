@@ -118,13 +118,14 @@ export class RewardScene extends Phaser.Scene {
     this.rewardCards.forEach((card, index) => {
       const x = 210 + index * 300;
       const y = 390;
+      const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
       const label = this.rexUI.add.label({
         x,
         y,
         width: 220,
         height: 300,
         orientation: 1,
-        background: this.add.image(0, 0, 'ui_card_frame').setDisplaySize(220, 300),
+        background: this.add.image(0, 0, cardFrontKey).setDisplaySize(220, 300),
         text: this.add.text(0, 0, `${card.name}\n\n耗能 ${card.cost}   类型 ${card.type}\n\n${card.description}\n\n${card.rarity.toUpperCase()}`, {
           fontSize: '16px',
           color: '#2a1206',

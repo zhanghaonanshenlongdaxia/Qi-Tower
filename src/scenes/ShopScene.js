@@ -161,8 +161,8 @@ export default class ShopScene extends Phaser.Scene {
     const container = this.add.container(x, y);
     
     // 卡牌背景
-    const bg = this.add.rectangle(0, 0, 140, 190, 0x1a1a2e)
-      .setStrokeStyle(2, 0x444466);
+    const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+    const bg = this.add.image(0, 0, cardFrontKey).setDisplaySize(140, 190);
     
     // 卡牌名称
     const nameText = this.add.text(0, -60, card.name, {

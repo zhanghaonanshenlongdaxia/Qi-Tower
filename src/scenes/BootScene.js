@@ -55,29 +55,16 @@ class BootScene extends Phaser.Scene {
     // ========== 加载九宫格背景 ==========
     this.load.image('panel_bg_nineslice', 'UI/bg.png');
     
+    // ========== 加载卡牌背面图片 ==========
+    this.load.image('card_back_common', 'assets/cards/普通.png');
+    this.load.image('card_back_uncommon', 'assets/cards/罕见.png');
+    this.load.image('card_back_rare', 'assets/cards/稀有.png');
+    this.load.image('card_front_common', 'assets/cards/普通正面.png');
+    this.load.image('card_front_uncommon', 'assets/cards/罕见正面.png');
+    this.load.image('card_front_rare', 'assets/cards/稀有正面.png');
+    
     // ========== 古风武侠 UI 纹理 ==========
     const g = this.make.graphics({ x: 0, y: 0, add: false });
-
-    // --- 卡牌背面（古铜锦纹） ---
-    g.fillStyle(0x2b1a0d, 1);
-    g.fillRoundedRect(0, 0, 140, 190, 6);
-    g.fillStyle(0x7a4f24, 1);
-    g.fillRoundedRect(6, 6, 128, 178, 4);
-    g.fillStyle(0x3d200e, 0.5);
-    g.fillRoundedRect(14, 14, 112, 162, 3);
-    g.lineStyle(2, 0xd4a03a, 0.9);
-    g.strokeRoundedRect(1, 1, 138, 188, 6);
-    g.lineStyle(1, 0xe8c96a, 0.5);
-    g.strokeRoundedRect(6, 6, 128, 178, 4);
-    // 菱形装饰
-    g.lineStyle(1, 0xd4a03a, 0.4);
-    g.strokeRect(34, 50, 72, 90);
-    g.strokeRect(42, 62, 56, 66);
-    // 中心圆纹
-    g.strokeCircle(70, 95, 22);
-    g.strokeCircle(70, 95, 12);
-    g.generateTexture('ui_card_back', 140, 190);
-    g.clear();
 
     // --- 卡牌框架（宣纸米白+木框） ---
     g.fillStyle(0x1e120a, 1);
