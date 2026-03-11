@@ -10,10 +10,11 @@ export const RELIC_LIBRARY = [
     id: 'vitality_ring',
     name: '生命之戒',
     tier: 'common',
-    description: '最大生命 +12',
+    description: '最大生命 +12，战斗开始时获得 5 点格挡',
     icon: '💍',
     effects: {
-      maxHp: 12
+      maxHp: 12,
+      onBattleStart: { block: 5 }
     }
   },
   
@@ -230,6 +231,17 @@ export const RELIC_LIBRARY = [
     }
   },
   
+  {
+    id: 'map_beacon',
+    name: '地图信标',
+    tier: 'uncommon',
+    description: '每进入新节点，抽 1 张牌',
+    icon: '📍',
+    effects: {
+      onNodeEnter: { draw: 1 }
+    }
+  },
+  
   // ========== Boss 遗物 ==========
   
   {
@@ -304,10 +316,10 @@ export const RELIC_LIBRARY = [
     id: 'void_orb',
     name: '虚空宝珠',
     tier: 'boss',
-    description: '回合结束时，对所有敌人施加 2 层虚弱',
+    description: '回合结束时，对所有敌人施加 1 层虚弱',
     icon: '🔮',
     effects: {
-      onTurnEnd: { applyToAllEnemies: { weak: 2 } }
+      onTurnEnd: { applyToAllEnemies: { weak: 1 } }
     }
   },
   
@@ -374,11 +386,11 @@ export const RELIC_LIBRARY = [
     id: 'cursed_amulet',
     name: '诅咒项链',
     tier: 'cursed',
-    description: '力量 +5，但最大生命 -20',
+    description: '力量 +5，但最大生命 -10',
     icon: '📿',
     effects: {
       strength: 5,
-      maxHp: -20
+      maxHp: -10
     },
     curse: true
   },

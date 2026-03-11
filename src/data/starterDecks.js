@@ -9,12 +9,12 @@ export const STARTER_DECKS = [
     id: 'iron_body_monk',
     name: '金刚护体',
     heroId: 'iron_monk',
-    cards: ['guard', 'guard', 'guard', 'jade_skin', 'stone_breath', 'focus', 'focus', 'strike', 'guard', 'burst'],
+    cards: ['guard', 'guard', 'guard', 'jade_skin', 'stone_breath', 'focus', 'focus', 'strike', 'guard', 'counter_shield'],
   },
   {
     id: 'shadow_venom',
     name: '暗毒奇术',
     heroId: 'shadow_assassin',
-    cards: ['quick_slash', 'quick_slash', 'quick_slash', 'poison_seal', 'shadow_bind', 'armor_break', 'armor_break', 'strike', 'focus', 'meteor_fall'],
+    cards: ['quick_slash', 'quick_slash', 'quick_slash', 'poison_seal', 'shadow_bind', 'armor_break', 'armor_break', 'strike', 'focus', 'fatal_strike'],
   },
 ];

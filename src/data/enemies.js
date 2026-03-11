@@ -9,11 +9,11 @@ export const ENEMY_LIBRARY = [
   {
     id: 'bandit_guard',
     name: '山匪卫兵',
-    maxHp: 40,
+    maxHp: 38,
     cardsPerTurn: 2,
     intents: [
-      { type: 'attack', value: 7, label: '劈砍 7' },
-      { type: 'attack', value: 10, label: '重击 10' },
+      { type: 'attack', value: 6, label: '劈砍 6' },
+      { type: 'attack', value: 9, label: '重击 9' },
       { type: 'block', value: 6, label: '防守 6' },
     ],
     deck: [
@@ -43,16 +43,17 @@ export const ENEMY_LIBRARY = [
       { name: '夺魄', type: 'skill', description: '令玩家获得 1 层易伤。', applyStatus: { target: 'player', id: 'vulnerable', stacks: 1 } },
     ],
     area: 'route',
+    dynamicBehavior: { condition: 'hp_below_50', effect: { increaseStatus: { target: 'player', id: 'weak', stacks: 1 } }, description: '生命低于50%时，额外施加1层虚弱。' },
   },
   {
     id: 'jade_construct',
     name: '玉傀守卫',
-    maxHp: 58,
+    maxHp: 52,
     cardsPerTurn: 3,
     intents: [
-      { type: 'attack', value: 10, label: '镇山击 10' },
+      { type: 'attack', value: 9, label: '镇山击 9' },
       { type: 'block', value: 8, label: '玉甲 8' },
-      { type: 'attack', value: 14, label: '裂岩重锤 14' },
+      { type: 'attack', value: 12, label: '裂岩重锤 12' },
     ],
     deck: [
       { name: '镇山击', type: 'attack', value: 9, description: '造成 9 点伤害。' },
@@ -295,7 +296,7 @@ export const ENEMY_LIBRARY = [
   },
 
   // ========== 第一区域：云麓山麓 ==========
-  
+
   {
     id: 'slime',
     name: '史莱姆',
@@ -311,7 +312,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area1'
   },
-  
+
   {
     id: 'goblin_scout',
     name: '哥布林斥候',
@@ -329,7 +330,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area1'
   },
-  
+
   {
     id: 'wolf',
     name: '野狼',
@@ -347,7 +348,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area1'
   },
-  
+
   {
     id: 'ogre',
     name: '食人魔',
@@ -367,7 +368,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area1'
   },
-  
+
   {
     id: 'dark_mage',
     name: '黑暗法师',
@@ -387,7 +388,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area1'
   },
-  
+
   {
     id: 'mountain_king',
     name: '山岭之王',
@@ -409,9 +410,9 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area1'
   },
-  
+
   // ========== 第二区域：幽冥秘境 ==========
-  
+
   {
     id: 'skeleton',
     name: '骷髅兵',
@@ -428,7 +429,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area2'
   },
-  
+
   {
     id: 'zombie',
     name: '僵尸',
@@ -445,7 +446,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area2'
   },
-  
+
   {
     id: 'ghost',
     name: '幽魂',
@@ -463,7 +464,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area2'
   },
-  
+
   {
     id: 'lich',
     name: '巫妖',
@@ -483,7 +484,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area2'
   },
-  
+
   {
     id: 'death_knight',
     name: '死亡骑士',
@@ -503,7 +504,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area2'
   },
-  
+
   {
     id: 'bone_dragon',
     name: '骨龙',
@@ -525,9 +526,9 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area2'
   },
-  
+
   // ========== 第三区域：天穹仙域 ==========
-  
+
   {
     id: 'celestial_guard',
     name: '天界守卫',
@@ -544,7 +545,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area3'
   },
-  
+
   {
     id: 'phoenix_spawn',
     name: '凤凰幼雏',
@@ -562,7 +563,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area3'
   },
-  
+
   {
     id: 'dragon_whelp',
     name: '龙崽',
@@ -579,7 +580,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area3'
   },
-  
+
   {
     id: 'immortal',
     name: '仙人',
@@ -599,7 +600,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area3'
   },
-  
+
   {
     id: 'demon_lord',
     name: '魔尊',
@@ -619,7 +620,7 @@ export const ENEMY_LIBRARY = [
     ],
     area: 'area3'
   },
-  
+
   {
     id: 'heaven_emperor',
     name: '天帝',
