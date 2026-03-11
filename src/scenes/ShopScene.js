@@ -166,18 +166,21 @@ export default class ShopScene extends Phaser.Scene {
     
     // 卡牌名称
     const nameText = this.add.text(0, -60, card.name, {
-      fontSize: '16px',
+      fontSize: '14px',
       fontFamily: 'Arial',
       color: '#ffffff',
-      wordWrap: { width: 120 }
+      wordWrap: { width: 120 },
+      maxLines: 1,
     }).setOrigin(0.5);
     
     // 卡牌描述
-    const descText = this.add.text(0, -20, card.description || '', {
-      fontSize: '12px',
+    const shortDesc = (card.description || '').length > 24 ? (card.description || '').slice(0, 22) + '…' : (card.description || '');
+    const descText = this.add.text(0, -20, shortDesc, {
+      fontSize: '11px',
       fontFamily: 'Arial',
       color: '#aaaaaa',
-      wordWrap: { width: 120 }
+      wordWrap: { width: 120 },
+      maxLines: 3,
     }).setOrigin(0.5);
     
     // 价格
@@ -196,15 +199,25 @@ export default class ShopScene extends Phaser.Scene {
       padding: { x: 15, y: 8 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     
+    bg.setInteractive({ useHandCursor: false });
+    bg.on('pointerover', () => {
+      this._showShopCardTooltip(card, x, y - 100);
+    });
+    bg.on('pointerout', () => {
+      this._hideShopCardTooltip();
+    });
+
     buyButton.on('pointerover', () => {
       buyButton.setStyle({ backgroundColor: '#2a6a2a' });
     });
     
     buyButton.on('pointerout', () => {
       buyButton.setStyle({ backgroundColor: '#1a4a1a' });
+      this._hideShopCardTooltip();
     });
     
     buyButton.on('pointerdown', () => {
+      this._hideShopCardTooltip();
       this.buyCard(card, index);
     });
     
@@ -542,5 +555,31 @@ export default class ShopScene extends Phaser.Scene {
     this.scene.start('MapScene', {
       fromShop: true
     });
+  }
+
+  _showShopCardTooltip(card, wx, wy) {
+    this._hideShopCardTooltip();
+    const tipW = 220;
+    const lines = [card.name, `耗能 ${card.cost}  类型 ${card.type}  ${String(card.rarity || '').toUpperCase()}`];
+    if (card.description) lines.push(card.description);
+    const content = lines.join('\n');
+    const tmpText = this.add.text(0, 0, content, { fontSize: '12px', wordWrap: { width: tipW - 20 }, lineSpacing: 3 });
+    const textH = tmpText.height;
+    tmpText.destroy();
+    const tipH = textH + 24;
+    const tx = Math.min(Math.max(wx - tipW / 2, 4), this.scale.width - tipW - 4);
+    const ty = Math.max(wy - tipH - 6, 4);
+    const tipBg = this.add.rectangle(tx + tipW / 2, ty + tipH / 2, tipW, tipH, 0x1e1208, 0.96).setStrokeStyle(1, 0xd9a441, 0.7).setDepth(150);
+    const tipText = this.add.text(tx + 10, ty + 10, content, {
+      fontSize: '12px', color: '#ead8b8', wordWrap: { width: tipW - 20 }, lineSpacing: 3,
+    }).setDepth(150);
+    this._shopCardTooltip = [tipBg, tipText];
+  }
+
+  _hideShopCardTooltip() {
+    if (this._shopCardTooltip) {
+      this._shopCardTooltip.forEach(o => o.destroy());
+      this._shopCardTooltip = null;
+    }
   }
 }

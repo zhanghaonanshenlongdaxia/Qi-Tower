@@ -17,6 +17,10 @@ export class BattleScene extends Phaser.Scene {
     this._handCardBounds = [];
     this.createLayout();
     this.input.on('pointerdown', (pointer) => this._onHandPointerDown(pointer));
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.rightButtonDown()) this._onHandRightClick(pointer);
+    });
+    this.input.on('gameobjectout', () => this._hideCardTooltip());
     this.render(0);
     if (this.state.isBoss) {
       this.showBossIntroSequence();
@@ -217,6 +221,44 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  _showCardTooltip(card, wx, wy) {
+    this._hideCardTooltip();
+    const tipW = 220;
+    const effectParts = [];
+    if (card.damage) effectParts.push(`伤害 ${card.damage}`);
+    if (card.block) effectParts.push(`格挡 ${card.block}`);
+    if (card.draw) effectParts.push(`抽牌 ${card.draw}`);
+    if (card.applyStatus) effectParts.push(`${card.applyStatus.id} ${card.applyStatus.stacks}`);
+    if (Array.isArray(card.applyStatuses)) {
+      card.applyStatuses.forEach(entry => effectParts.push(`${entry.id} ${entry.stacks}`));
+    }
+    const lines = [
+      card.name,
+      `耗能 ${card.cost}  类型 ${card.type}  ${String(card.rarity).toUpperCase()}`,
+    ];
+    if (effectParts.length > 0) lines.push(effectParts.join(' · '));
+    if (card.description) lines.push(card.description);
+    const content = lines.join('\n');
+    const tmpText = this.add.text(0, 0, content, { fontSize: '12px', wordWrap: { width: tipW - 20 }, lineSpacing: 3 });
+    const textH = tmpText.height;
+    tmpText.destroy();
+    const tipH = textH + 24;
+    const tx = Math.min(Math.max(wx, 4), this.scale.width - tipW - 4);
+    const ty = Math.max(wy - tipH - 6, 4);
+    const tipBg = this.add.rectangle(tx + tipW / 2, ty + tipH / 2, tipW, tipH, 0x1e1208, 0.96).setStrokeStyle(1, 0xd9a441, 0.7).setDepth(150);
+    const tipText = this.add.text(tx + 10, ty + 10, content, {
+      fontSize: '12px', color: '#ead8b8', wordWrap: { width: tipW - 20 }, lineSpacing: 3,
+    }).setDepth(150);
+    this._cardTooltip = [tipBg, tipText];
+  }
+
+  _hideCardTooltip() {
+    if (this._cardTooltip) {
+      this._cardTooltip.forEach(o => o.destroy());
+      this._cardTooltip = null;
+    }
+  }
+
   renderEnemy() {
     this.clearContainer(this.enemyPanel);
     const e = this.state.enemy;
@@ -320,15 +362,15 @@ export class BattleScene extends Phaser.Scene {
   renderHand(animateFromIndex = -1) {
     this.clearContainer(this.handContainer);
     this._handCardBounds = [];
+    this._hideCardTooltip();
     const deckWorldX = this.handContainer.x + this.state.hand.length * 136 + 80;
     const deckWorldY = this.handContainer.y + 94;
     this.state.hand.forEach((card, index) => {
       const x = index * 136;
       const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
       const bg = this.add.image(x, 0, cardFrontKey).setOrigin(0, 0).setDisplaySize(126, 188);
-      const title = this.add.text(x + 10, 14, card.name, { fontSize: '15px', color: '#4a2d18', fontStyle: 'bold', wordWrap: { width: 100 }, maxLines: 2 });
-      const cost = this.add.text(x + 10, 44, `耗能 ${card.cost}`, { fontSize: '11px', color: '#8d5a18' });
-      const type = this.add.text(x + 10, 62, `类型 ${card.type}`, { fontSize: '11px', color: '#6a4d24' });
+      const title = this.add.text(x + 10, 14, card.name, { fontSize: '14px', color: '#4a2d18', fontStyle: 'bold', wordWrap: { width: 106 }, maxLines: 1 });
+      const costType = this.add.text(x + 10, 34, `耗能 ${card.cost} · ${card.type}`, { fontSize: '10px', color: '#8d5a18' });
       const effectParts = [];
       if (card.damage) effectParts.push(`伤害 ${card.damage}`);
       if (card.block) effectParts.push(`格挡 ${card.block}`);
@@ -337,11 +379,11 @@ export class BattleScene extends Phaser.Scene {
       if (Array.isArray(card.applyStatuses)) {
         card.applyStatuses.forEach(entry => effectParts.push(`${entry.id} ${entry.stacks}`));
       }
-      const effectSummary = this.add.text(x + 10, 78, effectParts.join(' · '), {
-        fontSize: '10px', color: '#8b5c24', fontStyle: 'bold', wordWrap: { width: 100 }, maxLines: 2,
+      const effectSummary = this.add.text(x + 10, 52, effectParts.join(' · '), {
+        fontSize: '10px', color: '#8b5c24', fontStyle: 'bold', wordWrap: { width: 106 }, maxLines: 2,
       });
-      const desc = this.add.text(x + 10, 96, card.description, { fontSize: '10px', color: '#5a4024', wordWrap: { width: 100 }, lineSpacing: 1, maxLines: 4 });
-      const rarity = this.add.text(x + 10, 160, String(card.rarity).toUpperCase(), { fontSize: '10px', color: '#7b5f27', fontStyle: 'bold' });
+      const desc = this.add.text(x + 10, 76, card.description, { fontSize: '9px', color: '#5a4024', wordWrap: { width: 106 }, lineSpacing: 1, maxLines: 5 });
+      const rarity = this.add.text(x + 10, 164, String(card.rarity).toUpperCase(), { fontSize: '9px', color: '#7b5f27', fontStyle: 'bold' });
       this._handCardBounds.push({
         worldX: this.handContainer.x + x,
         worldY: this.handContainer.y,
@@ -351,7 +393,7 @@ export class BattleScene extends Phaser.Scene {
         index,
       });
       if (animateFromIndex >= 0 && index >= animateFromIndex) {
-        const items = [bg, title, cost, type, effectSummary, desc, rarity];
+        const items = [bg, title, costType, effectSummary, desc, rarity];
         const startOffX = deckWorldX - (this.handContainer.x + x + 63);
         const startOffY = deckWorldY - this.handContainer.y - 94;
         items.forEach(item => {
@@ -371,11 +413,13 @@ export class BattleScene extends Phaser.Scene {
           });
         });
       }
-      this.handContainer.add([bg, title, cost, type, effectSummary, desc, rarity]);
+      this.handContainer.add([bg, title, costType, effectSummary, desc, rarity]);
     });
   }
 
   _onHandPointerDown(pointer) {
+    if (pointer.rightButtonDown()) return;
+    this._hideCardTooltip();
     if (this.state.isFinished()) return;
     if (this.isEnemyActing) return;
     if (this._handLocked) return;
@@ -414,6 +458,22 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  _onHandRightClick(pointer) {
+    if (!this._handCardBounds || this._handCardBounds.length === 0) return;
+    const px = pointer.x;
+    const py = pointer.y;
+    let hit = null;
+    for (let i = this._handCardBounds.length - 1; i >= 0; i--) {
+      const b = this._handCardBounds[i];
+      if (px >= b.worldX && px <= b.worldX + b.w && py >= b.worldY && py <= b.worldY + b.h) {
+        hit = b;
+        break;
+      }
+    }
+    if (!hit) { this._hideCardTooltip(); return; }
+    this._showCardTooltip(hit.card, px, py);
+  }
+
   animatePlayedCard(card, startX, startY) {
     if (this.playedCardPreview) {
       this.playedCardPreview.destroy();
@@ -425,18 +485,20 @@ export class BattleScene extends Phaser.Scene {
     const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
     const bg = this.add.image(0, 0, cardFrontKey).setDisplaySize(118, 172);
     const title = this.add.text(0, -52, card.name, {
-      fontSize: '16px',
+      fontSize: '14px',
       color: '#4a2d18',
       fontStyle: 'bold',
-      wordWrap: { width: 82 },
+      wordWrap: { width: 90 },
       align: 'center',
+      maxLines: 1,
     }).setOrigin(0.5);
     const desc = this.add.text(0, 6, card.description, {
-      fontSize: '10px',
+      fontSize: '9px',
       color: '#5a4024',
-      wordWrap: { width: 82 },
+      wordWrap: { width: 90 },
       align: 'center',
       lineSpacing: 1,
+      maxLines: 4,
     }).setOrigin(0.5);
     preview.add([bg, title, desc]);
     preview.setScale(0.85);
@@ -467,18 +529,20 @@ export class BattleScene extends Phaser.Scene {
     const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
     const bg = this.add.image(0, 0, cardFrontKey).setDisplaySize(112, 162);
     const title = this.add.text(0, -48, card.name, {
-      fontSize: '15px',
+      fontSize: '14px',
       color: '#4a2d18',
       fontStyle: 'bold',
-      wordWrap: { width: 78 },
+      wordWrap: { width: 84 },
       align: 'center',
+      maxLines: 1,
     }).setOrigin(0.5);
     const desc = this.add.text(0, 4, card.description, {
-      fontSize: '10px',
+      fontSize: '9px',
       color: '#5a4024',
-      wordWrap: { width: 78 },
+      wordWrap: { width: 84 },
       align: 'center',
       lineSpacing: 1,
+      maxLines: 4,
     }).setOrigin(0.5);
     preview.add([bg, title, desc]);
     preview.setDepth(20);
@@ -523,19 +587,20 @@ export class BattleScene extends Phaser.Scene {
     const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
     const bg = this.add.image(0, 0, cardFrontKey).setDisplaySize(88, 128);
     const title = this.add.text(0, -36, card.name, {
-      fontSize: '12px',
+      fontSize: '11px',
       color: '#4a2d18',
       fontStyle: 'bold',
-      wordWrap: { width: 62 },
+      wordWrap: { width: 66 },
       align: 'center',
+      maxLines: 1,
     }).setOrigin(0.5);
     const desc = this.add.text(0, 8, card.description, {
-      fontSize: '9px',
+      fontSize: '8px',
       color: '#5a4024',
-      wordWrap: { width: 60 },
+      wordWrap: { width: 66 },
       align: 'center',
       lineSpacing: 1,
-      maxLines: 4,
+      maxLines: 3,
     }).setOrigin(0.5);
     const badge = this.add.text(0, 46, card.source === 'enemy' ? '敌' : '我', {
       fontSize: '12px',
@@ -600,10 +665,11 @@ export class BattleScene extends Phaser.Scene {
       const startX = this.handContainer.x + index * 136 + 63;
       const startY = this.handContainer.y + 94;
       const ghost = this.add.container(startX, startY);
-      const bg = this.add.image(0, 0, 'ui_card_frame').setDisplaySize(126, 188);
+      const ghostFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+      const bg = this.add.image(0, 0, ghostFrontKey).setDisplaySize(126, 188);
       const label = this.add.text(0, -60, card.name, {
-        fontSize: '13px', color: '#4a2d18', fontStyle: 'bold',
-        wordWrap: { width: 100 }, align: 'center',
+        fontSize: '12px', color: '#4a2d18', fontStyle: 'bold',
+        wordWrap: { width: 100 }, align: 'center', maxLines: 1,
       }).setOrigin(0.5);
       ghost.add([bg, label]);
       ghost.setScale(0.7);

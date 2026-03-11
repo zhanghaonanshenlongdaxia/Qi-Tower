@@ -784,13 +784,14 @@ export class MapScene extends Phaser.Scene {
       const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
       const bg = this.add.image(x, cardY, cardFrontKey).setDisplaySize(cardW, cardH).setInteractive({ useHandCursor: true });
       const nameText = this.add.text(x, cardY - cardH / 2 + 22, card.name, {
-        fontSize: '16px', color: '#3a1a06', fontStyle: 'bold', align: 'center', wordWrap: { width: cardW - 20 },
+        fontSize: '14px', color: '#3a1a06', fontStyle: 'bold', align: 'center', wordWrap: { width: cardW - 20 }, maxLines: 1,
       }).setOrigin(0.5);
-      const infoText = this.add.text(x, cardY - cardH / 2 + 52, `耗能 ${card.cost} · ${card.type}`, {
-        fontSize: '11px', color: '#7a5a30', align: 'center',
+      const infoText = this.add.text(x, cardY - cardH / 2 + 44, `耗能 ${card.cost} · ${card.type}`, {
+        fontSize: '10px', color: '#7a5a30', align: 'center',
       }).setOrigin(0.5);
-      const descText = this.add.text(x, cardY - 6, card.description, {
-        fontSize: '12px', color: '#5a4024', align: 'center', wordWrap: { width: cardW - 24 }, lineSpacing: 4,
+      const shortDesc = card.description.length > 30 ? card.description.slice(0, 28) + '…' : card.description;
+      const descText = this.add.text(x, cardY - 6, shortDesc, {
+        fontSize: '11px', color: '#5a4024', align: 'center', wordWrap: { width: cardW - 24 }, lineSpacing: 3, maxLines: 4,
       }).setOrigin(0.5);
       const pickText = this.add.text(x, cardY + cardH / 2 - 22, '选取', {
         fontSize: '14px', color: '#f0d060', fontStyle: 'bold',
@@ -925,15 +926,16 @@ export class MapScene extends Phaser.Scene {
         const cardFrontKey = entry.rarity === 'rare' ? 'card_front_rare' : (entry.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
         const bg = this.add.image(x, cardY, cardFrontKey).setDisplaySize(CARD_W, CARD_H).setInteractive({ useHandCursor: true });
         const nameText = this.add.text(x, cardY - CARD_H / 2 + 18, entry.name, {
-          fontSize: '14px', color: '#4a2d18', fontStyle: 'bold',
-          align: 'center', wordWrap: { width: CARD_W - 20 },
+          fontSize: '13px', color: '#4a2d18', fontStyle: 'bold',
+          align: 'center', wordWrap: { width: CARD_W - 20 }, maxLines: 1,
         }).setOrigin(0.5);
-        const typeText = this.add.text(x, cardY - CARD_H / 2 + 44, entry.type || '遗物', {
-          fontSize: '11px', color: '#8d6a3a', align: 'center',
+        const typeText = this.add.text(x, cardY - CARD_H / 2 + 38, entry.type || '遗物', {
+          fontSize: '10px', color: '#8d6a3a', align: 'center',
         }).setOrigin(0.5);
-        const descText = this.add.text(x, cardY - 8, entry.description || '', {
-          fontSize: '12px', color: '#5a4024', align: 'center',
-          wordWrap: { width: CARD_W - 20 }, lineSpacing: 4,
+        const entryShortDesc = (entry.description || '').length > 26 ? (entry.description || '').slice(0, 24) + '…' : (entry.description || '');
+        const descText = this.add.text(x, cardY - 8, entryShortDesc, {
+          fontSize: '10px', color: '#5a4024', align: 'center',
+          wordWrap: { width: CARD_W - 20 }, lineSpacing: 3, maxLines: 3,
         }).setOrigin(0.5);
         const priceBox = this.add.rectangle(x, cardY + CARD_H / 2 - 22, 90, 28, 0x5a3614, 1).setStrokeStyle(1, 0xd9a441, 0.6);
         const priceText = this.add.text(x, cardY + CARD_H / 2 - 22, `灵石 ${entry.price}`, {
@@ -1079,13 +1081,14 @@ export class MapScene extends Phaser.Scene {
       const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
       const bg = this.add.image(x, cardY, cardFrontKey).setDisplaySize(cardW, cardH).setInteractive({ useHandCursor: true });
       const nameText = this.add.text(x, cardY - cardH / 2 + 20, card.name, {
-        fontSize: '15px', color: '#3a1a06', fontStyle: 'bold', align: 'center', wordWrap: { width: cardW - 18 },
+        fontSize: '13px', color: '#3a1a06', fontStyle: 'bold', align: 'center', wordWrap: { width: cardW - 18 }, maxLines: 1,
       }).setOrigin(0.5);
-      const infoText = this.add.text(x, cardY - cardH / 2 + 48, `耗能 ${card.cost} · ${card.type}`, {
-        fontSize: '11px', color: '#7a5a30', align: 'center',
+      const infoText = this.add.text(x, cardY - cardH / 2 + 42, `耗能 ${card.cost} · ${card.type}`, {
+        fontSize: '10px', color: '#7a5a30', align: 'center',
       }).setOrigin(0.5);
-      const descText = this.add.text(x, cardY - 4, card.description, {
-        fontSize: '11px', color: '#5a4024', align: 'center', wordWrap: { width: cardW - 20 }, lineSpacing: 4,
+      const purgeShortDesc = card.description.length > 28 ? card.description.slice(0, 26) + '…' : card.description;
+      const descText = this.add.text(x, cardY - 4, purgeShortDesc, {
+        fontSize: '10px', color: '#5a4024', align: 'center', wordWrap: { width: cardW - 20 }, lineSpacing: 3, maxLines: 3,
       }).setOrigin(0.5);
       const pickText = this.add.text(x, cardY + cardH / 2 - 20, '移除', {
         fontSize: '14px', color: '#f0d060', fontStyle: 'bold', stroke: '#2a0e04', strokeThickness: 2,

@@ -119,6 +119,7 @@ export class RewardScene extends Phaser.Scene {
       const x = 210 + index * 300;
       const y = 390;
       const cardFrontKey = card.rarity === 'rare' ? 'card_front_rare' : (card.rarity === 'uncommon' ? 'card_front_uncommon' : 'card_front_common');
+      const shortDesc = card.description.length > 28 ? card.description.slice(0, 26) + '…' : card.description;
       const label = this.rexUI.add.label({
         x,
         y,
@@ -126,13 +127,14 @@ export class RewardScene extends Phaser.Scene {
         height: 300,
         orientation: 1,
         background: this.add.image(0, 0, cardFrontKey).setDisplaySize(220, 300),
-        text: this.add.text(0, 0, `${card.name}\n\n耗能 ${card.cost}   类型 ${card.type}\n\n${card.description}\n\n${card.rarity.toUpperCase()}`, {
-          fontSize: '16px',
+        text: this.add.text(0, 0, `${card.name}\n\n耗能 ${card.cost}   类型 ${card.type}\n\n${shortDesc}\n\n${card.rarity.toUpperCase()}`, {
+          fontSize: '15px',
           color: '#2a1206',
           align: 'center',
           fontStyle: 'bold',
           wordWrap: { width: 176 },
-          lineSpacing: 10,
+          lineSpacing: 8,
+          maxLines: 8,
         }),
         align: 'center',
         space: {
@@ -143,7 +145,14 @@ export class RewardScene extends Phaser.Scene {
         },
       }).layout();
       label.setInteractive({ useHandCursor: true });
+      label.on('pointerover', () => {
+        this._showRewardCardTooltip(card, x, y - 160);
+      });
+      label.on('pointerout', () => {
+        this._hideRewardCardTooltip();
+      });
       label.on('pointerdown', () => {
+        this._hideRewardCardTooltip();
         this.sfx?.resume();
         this.sfx?.playReward();
         this._completeCardReward(card.id);
@@ -251,5 +260,40 @@ export class RewardScene extends Phaser.Scene {
       this._finishRewards();
     });
     this._registerStepObjects(skipButton);
+  }
+
+  _showRewardCardTooltip(card, wx, wy) {
+    this._hideRewardCardTooltip();
+    const tipW = 230;
+    const effectParts = [];
+    if (card.damage) effectParts.push(`伤害 ${card.damage}`);
+    if (card.block) effectParts.push(`格挡 ${card.block}`);
+    if (card.draw) effectParts.push(`抽牌 ${card.draw}`);
+    if (card.applyStatus) effectParts.push(`${card.applyStatus.id} ${card.applyStatus.stacks}`);
+    if (Array.isArray(card.applyStatuses)) {
+      card.applyStatuses.forEach(entry => effectParts.push(`${entry.id} ${entry.stacks}`));
+    }
+    const lines = [card.name, `耗能 ${card.cost}  类型 ${card.type}  ${String(card.rarity).toUpperCase()}`];
+    if (effectParts.length > 0) lines.push(effectParts.join(' · '));
+    if (card.description) lines.push(card.description);
+    const content = lines.join('\n');
+    const tmpText = this.add.text(0, 0, content, { fontSize: '13px', wordWrap: { width: tipW - 20 }, lineSpacing: 3 });
+    const textH = tmpText.height;
+    tmpText.destroy();
+    const tipH = textH + 24;
+    const tx = Math.min(Math.max(wx - tipW / 2, 4), this.scale.width - tipW - 4);
+    const ty = Math.max(wy - tipH - 6, 4);
+    const tipBg = this.add.rectangle(tx + tipW / 2, ty + tipH / 2, tipW, tipH, 0x1e1208, 0.96).setStrokeStyle(1, 0xd9a441, 0.7).setDepth(150);
+    const tipText = this.add.text(tx + 10, ty + 10, content, {
+      fontSize: '13px', color: '#ead8b8', wordWrap: { width: tipW - 20 }, lineSpacing: 3,
+    }).setDepth(150);
+    this._rewardCardTooltip = [tipBg, tipText];
+  }
+
+  _hideRewardCardTooltip() {
+    if (this._rewardCardTooltip) {
+      this._rewardCardTooltip.forEach(o => o.destroy());
+      this._rewardCardTooltip = null;
+    }
   }
 }
