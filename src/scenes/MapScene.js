@@ -1,6 +1,7 @@
 import { EVENT_LIBRARY } from '../data/events';
 import { getStoryStep } from '../data/story';
 import { UIHelper } from '../utils/UIHelper';
+import { enableRuntimeUIEditor } from '../utils/RuntimeUIEditor';
 
 export class MapScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +9,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   create(data) {
+    enableRuntimeUIEditor(this);
     this.progress = data.progress || {
       deckId: 'novice_cultivator',
       maxHp: 50,

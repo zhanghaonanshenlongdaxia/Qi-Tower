@@ -1,5 +1,6 @@
 import { HERO_LIBRARY } from '../data/heroes';
 import { MAP_ROUTE_LIBRARY } from '../data/mapNodes';
+import { enableRuntimeUIEditor } from '../utils/RuntimeUIEditor';
 
 export class HeroSelectScene extends Phaser.Scene {
   constructor() {
@@ -7,6 +8,7 @@ export class HeroSelectScene extends Phaser.Scene {
   }
 
   create() {
+    enableRuntimeUIEditor(this);
     this.sfx = this.registry.get('sfxManager');
     this.dataRegistry = this.registry.get('dataRegistry');
     this._selectedRouteId = MAP_ROUTE_LIBRARY[0]?.id || 'trial_route_alpha';

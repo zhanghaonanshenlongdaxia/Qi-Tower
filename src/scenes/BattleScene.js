@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../config/gameConfig';
 import { BattleState } from '../systems/BattleState';
+import { enableRuntimeUIEditor } from '../utils/RuntimeUIEditor';
 
 export class BattleScene extends Phaser.Scene {
   constructor() {
@@ -7,11 +8,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(data) {
+    enableRuntimeUIEditor(this);
     const registry = this.registry.get('dataRegistry');
     this.state = new BattleState(registry, data);
     this.sfx = this.registry.get('sfxManager');
     this.tableCards = [];
     this.currentTurnCards = [];
+    this.tableRoundCounts = [];
     this.isEnemyActing = false;
     this._handLocked = false;
     this._handCardBounds = [];
@@ -118,6 +121,7 @@ export class BattleScene extends Phaser.Scene {
             this.addTableCard({
               name: enemyCard.name,
               description: enemyCard.description,
+              rarity: enemyCard.rarity,
               source: 'enemy',
             });
           });
@@ -445,7 +449,12 @@ export class BattleScene extends Phaser.Scene {
       this.sfx?.resume();
       this.sfx?.playCard();
       this.animatePlayedCard(hit.card, startX, startY);
-      this.addTableCard({ name: hit.card.name, description: hit.card.description, source: 'player' });
+      this.addTableCard({
+        name: hit.card.name,
+        description: hit.card.description,
+        rarity: hit.card.rarity,
+        source: 'player',
+      });
       this._handCardBounds = [];
       this.clearContainer(this.handContainer);
       this._handLocked = false;
@@ -573,7 +582,6 @@ export class BattleScene extends Phaser.Scene {
 
   addTableCard(card) {
     const turnSourceIndex = this.currentTurnCards.filter(entry => entry.source === card.source).length;
-    const settledIndex = this.tableCards.length - this.currentTurnCards.length;
     const x = card.source === 'enemy'
       ? this.playZone.x + 26 + turnSourceIndex * 64
       : this.playZone.x - 118 + turnSourceIndex * 64;
@@ -611,14 +619,9 @@ export class BattleScene extends Phaser.Scene {
     container.setAngle(angle);
     container.setScale(0.72);
     this.tableCardLayer.add(container);
-    this.tableCards.push({ container, bg, title, desc, badge, facedown: false, source: card.source, rarity: card.rarity });
-    this.currentTurnCards.push({ container, bg, title, desc, badge, source: card.source, rarity: card.rarity });
-    this.tableCards.slice(0, settledIndex).forEach((entry, index) => {
-      entry.container.x = this.playZone.x - 112 + (index % 5) * 18;
-      entry.container.y = this.playZone.y + 2 + Math.floor(index / 5) * 8;
-      entry.container.setScale(0.58);
-      entry.container.setAngle(-4 + (index % 5) * 2);
-    });
+    const entry = { container, bg, title, desc, badge, facedown: false, source: card.source, rarity: card.rarity, slotIndex: turnSourceIndex };
+    this.tableCards.push(entry);
+    this.currentTurnCards.push(entry);
     this.playZoneLabel.setAlpha(0.08);
   }
 
@@ -638,6 +641,7 @@ export class BattleScene extends Phaser.Scene {
             entry.title.setVisible(false);
             entry.desc.setVisible(false);
             entry.badge.setVisible(false);
+            entry.facedown = true;
             this.tweens.add({
               targets: entry.container,
               scaleX: 0.72,
@@ -648,6 +652,28 @@ export class BattleScene extends Phaser.Scene {
         });
       });
     });
+    const trimDelay = cardsToFlip.length * 90 + 240;
+    this.time.delayedCall(trimDelay, () => {
+      this._cleanupTableCardsByRound(cardsToFlip.length);
+    });
+  }
+
+  _cleanupTableCardsByRound(roundCardCount) {
+    if (roundCardCount > 0) {
+      this.tableRoundCounts.push(roundCardCount);
+    }
+    while (this.tableRoundCounts.length > 3) {
+      const removeCount = this.tableRoundCounts.shift() || 0;
+      for (let i = 0; i < removeCount; i += 1) {
+        const removed = this.tableCards.shift();
+        if (!removed) break;
+        this.currentTurnCards = this.currentTurnCards.filter((entry) => entry !== removed);
+        removed.container.destroy();
+      }
+    }
+    if (this.tableCards.length === 0) {
+      this.playZoneLabel.setAlpha(0.22);
+    }
   }
 
   _animateDiscardHand(onComplete) {

@@ -1,9 +1,12 @@
+import { enableRuntimeUIEditor } from '../utils/RuntimeUIEditor';
+
 export class RewardScene extends Phaser.Scene {
   constructor() {
     super('RewardScene');
   }
 
   create(data) {
+    enableRuntimeUIEditor(this);
     this.progress = data.progress;
     this.rewardCards = data.rewardCards || [];
     this.rewardRelics = data.rewardRelics || [];

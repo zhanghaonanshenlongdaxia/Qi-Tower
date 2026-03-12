@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../config/gameConfig';
 import { DataRegistry } from '../systems/DataRegistry';
 import { SfxManager } from '../systems/SfxManager';
 import { UIHelper } from '../utils/UIHelper';
+import { enableRuntimeUIEditor } from '../utils/RuntimeUIEditor';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -9,6 +10,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    enableRuntimeUIEditor(this);
     const { width, height } = this.scale;
     if (!this.registry.get('dataRegistry')) {
       this.registry.set('dataRegistry', new DataRegistry());
