@@ -66,7 +66,8 @@ export class BattleScene extends Phaser.Scene {
     this.logY = 448;
 
     this.add.image(44, 52, 'avatar_player').setScale(0.54);
-    this.add.image(width - 44, 52, 'avatar_enemy').setScale(0.54);
+    const enemyAvatarKey = this.state.enemyId ? `avatar_enemy_${this.state.enemyId}` : 'avatar_enemy';
+    this.add.image(width - 44, 52, enemyAvatarKey).setScale(0.54);
 
     const titleLabel = this.state.isBoss ? 'Boss 对决' : this.state.isElite ? '精英对决' : '对决';
     const titleColor = this.state.isBoss ? '#ff5f5f' : this.state.isElite ? '#ff9040' : '#f4ead7';

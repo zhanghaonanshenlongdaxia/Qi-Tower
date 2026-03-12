@@ -52,6 +52,7 @@ export class BattleState {
     this.goldReward = options.goldReward || 0;
     this.isElite = options.isElite || false;
     this.isBoss = options.isBoss || false;
+    this.enemyId = options.enemyId || null;
     const startingMaxHp = options.mapProgress?.maxHp || 50;
     const startingHp = options.mapProgress?.playerHp || startingMaxHp;
     this.player = {

@@ -63,6 +63,17 @@ class BootScene extends Phaser.Scene {
     this.load.image('card_front_uncommon', 'assets/cards/罕见正面.png');
     this.load.image('card_front_rare', 'assets/cards/稀有正面.png');
     
+    // ========== 加载敌人头像 ==========
+    const enemyAvatarList = [
+      'bandit_guard', 'ghost_monk', 'jade_construct', 'scarlet_bat',
+      'mask_raider', 'fog_spirit_fox', 'seal_warden', 'bronze_mask_keeper',
+      'curse_scribe', 'iron_shell_beast', 'lantern_wraith', 'blade_ritualist',
+      'tower_judicator', 'echo_duelist', 'tower_heart_demon'
+    ];
+    enemyAvatarList.forEach(id => {
+      this.load.image(`avatar_enemy_${id}`, `assets/avatars/${id}.png`);
+    });
+    
     // ========== 古风武侠 UI 纹理 ==========
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 
